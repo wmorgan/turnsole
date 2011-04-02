@@ -3,7 +3,7 @@ module Turnsole
 class LabelListMode < LineCursorMode
   register_keymap do |k|
     k.add :select_label, "Search by label", :enter
-    k.add :reload, "Discard label list and reload", '@'
+    k.add :reload!, "Discard label list and reload", '@'
     k.add :jump_to_next_new, "Jump to next new thread", :tab
     k.add :toggle_show_unread_only, "Toggle between showing all labels and those with unread mail", 'u'
   end

@@ -3,13 +3,13 @@ module Turnsole
 class BufferListMode < LineCursorMode
   register_keymap do |k|
     k.add :jump_to_buffer, "Jump to selected buffer", :enter
-    k.add :reload, "Reload buffer list", "@"
+    k.add :reload!, "Reload buffer list", "@"
     k.add :kill_selected_buffer, "Kill selected buffer", "X"
   end
 
   def initialize context
     @context = context
-    regen_text
+    regen_text!
     super()
   end
 
@@ -17,18 +17,18 @@ class BufferListMode < LineCursorMode
   def [] i; @text[i] end
 
   def focus!
-    reload # buffers may have been killed or created since last view
+    reload! # buffers may have been killed or created since last view
     set_cursor_pos 0
   end
 
 protected
 
-  def reload
-    regen_text
+  def reload!
+    regen_text!
     buffer.mark_dirty!
   end
 
-  def regen_text
+  def regen_text!
     @bufs = @context.screen.buffers.reject { |buf| buf.mode == self }.sort_by { |buf| buf.atime }.reverse
     width = @bufs.max_of { |buf| buf.mode.name.display_width }
     @text = @bufs.map do |buf|

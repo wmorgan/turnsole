@@ -68,7 +68,6 @@ class UI
       source, event, *args = args
       method = "handle_#{event}_update"
       @event_listeners.each do |l|
-        @context.logger.info "have #{l} vs #{source}, #{event}, #{args}"
         next if l == source
         l.send(method, source, *args) if l.respond_to?(method)
       end
