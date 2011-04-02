@@ -1,0 +1,76 @@
+Running Turnsole from your git checkout
+---------------------------------------
+
+You will need:
+
+a) A modern Ruby (1.8.7 or 1.9.2 should both work).
+b) The following gems:
+    trollop ncursesw console
+c) A working heliotrope install, at the latest master.
+
+Invoke it like this:
+
+  ruby -I lib -I <heliotrope repo>/lib bin/turnsole
+
+Coding standards
+----------------
+
+- Don't wrap code unless it really benefits from it. I program at 183 columns
+  and I don't care to support anyone who uses smaller terminals.
+- Comment text, however, benefit from wrapping. I like 72 characters.
+- Use old lisp-style comment differentiations:
+   # one for comments on the same line as a line of code
+   ## two for comments on their own line, except:
+   ### three for comments that demarcate large sections of code (rare)
+- Use {} for one-liner blocks and do/end for multi-line blocks.
+- I like poetry. Avoid parentheses unless necessary for disambiguation.
+- The one exception to poetry mode is if-statements that have an assignment in
+  the condition. To make it clear this is not a comparison, surround the
+  condition by parentheses. E.g.:
+    if a == b                    if(a = some.computation)
+      ...             BUT          ... something with a
+    end                          end
+- and/or versus ||/&&. In Ruby, "and" and "or" bind very loosely---even
+  more loosely than function application. This makes them ideal for
+  end-of-line short-circuit control in poetry mode. So, use || and &&
+  for ordinary logical comparisons, and "and" and "or" for end-of-line
+  flow control. E.g.:
+    x = a || b or raise "neither is true"
+
+Turnsole architecture
+---------------------
+
+Turnsole has an event-based architecture. That means that there is a single
+event loop, and until an event occurs, the program waits patiently. This also
+means that we can keep the complicated thread programming to a minimum, since
+e.g. there is only one thread ever drawing to the screen at a time. (If you're
+familiar with Sup, this should come as a great relief.)
+
+There are two queues: the event queue, and the server queue. The event queue
+holds anything that would trigger a redraw: mostly, user keypresses, and results
+we've received from the server. The server queue simply queues up outgoing
+commands for the server.
+
+There are three threads: the main thread, the input thread, and the server
+thread. The main thread blocks on the event queue, processes the event, and
+draws the screen. The user input thread listens for keyboard presses and just
+adds those to the event queue. The server communication thread blocks on the
+server command queue, interacts with the server, and then places the results on
+the event queue.
+
+So the only actions that take place outside of the main loop are interacting
+with the server and getting input from the keyboard. Everything else runs as
+the main loop and can draw itself, etc. with impunity.
+
+(Everything that draws itself maintains a dirty state so that it doesn't have
+to do any work if asked to draw itself and nothing has changed.)
+
+There are two bits of the code that have to be thread-safe, corresponding to the
+things that non-main threads (basically, the server thread) can call that affect
+the screen. The first is the minibuf, which is used for displaying short
+messages to the user. The second is the system log, which is also potentially
+visible to the user. Non-main threads can call these things at will, but should
+enqueue a :redraw event after each call. (And there is one minor other piece,
+which is that we expose one synchronous server method--ping--which also requires
+the client code to be thread-safe as well).
+

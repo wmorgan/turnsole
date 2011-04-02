@@ -1,0 +1,143 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'trollop'
+require "turnsole"
+
+TURNSOLE_BIN_VERSION = "git" # change me on deploy
+unless Turnsole::VERSION == TURNSOLE_BIN_VERSION
+  $stderr.puts <<EOS
+Error: version mismatch!
+#{$0} is at version #{TURNSOLE_BIN_VERSION.inspect}.
+The turnsole libraries are at version #{Turnsole::VERSION.inspect}.
+
+Your development environment may be picking up code from a rubygems
+installation.
+
+If you're running from git with a commandline like
+
+  ruby -Ilib #{$0}
+
+try this instead:
+
+  RUBY_INVOCATION="ruby -Ilib" ruby -Ilib #{$0}
+
+You can also try `gem uninstall turnsole`.
+
+EOS
+  abort
+end
+
+if ENV['TURNSOLE_PROFILE']
+  require 'ruby-prof'
+  RubyProf.start
+end
+
+opts = Trollop::options do
+  version "sup v#{Turnsole::VERSION}"
+  banner <<EOS
+Turnsole is an ncurses-based email client. It is a frontend to the Heliotrope email
+service.
+
+Usage:
+  turnsole [options]
+
+Options are:
+EOS
+  opt :heliotrope_url, "Heliotrope server root URL (default: use value from config)"
+  opt :list_hooks, "List all hooks and descriptions, and quit."
+  #opt :search, "Search for this query upon startup", :type => String
+  #opt :compose, "Compose message to this recipient upon startup", :type => String
+  #opt :subject, "When composing, use this subject", :type => String, :short => "j"
+
+  #conflicts :compose, :search
+end
+
+#Trollop::die :subject, "requires --compose" if opts[:subject] && !opts[:compose]
+
+turnsole = Turnsole::Turnsole.new
+
+if opts[:list_hooks]
+  turnsole.hookmanager.dump_hooks $stdout
+  exit
+end
+
+Thread.abort_on_exception = true # make debugging possible
+Thread.current.priority = 1 # keep ui responsive
+
+log = turnsole.logger
+log.force_message "welcome to turnsole! log level is set to '#{log.level}'"
+unless log.is_at_finest_logging_level?
+  log.force_message "for more verbose logging, restart with TURNSOLE_LOG_LEVEL=#{log.next_finest_logging_level}"
+end
+log.info "running under #{RUBY_DESCRIPTION}"
+
+turnsole.setup! opts.heliotrope_url
+begin
+  turnsole.client.ping!
+  log.debug "server is up"
+rescue HeliotropeClient::Error => e
+  $stderr.puts "Error: can't connect to server at #{turnsole.client.url}. Please check that it is up."
+  $stderr.puts "Error was: #{e.message}"
+  abort
+end
+
+begin
+  turnsole.start!
+
+  trap("TERM") { |x| turnsole.ui.quit! }
+  trap("WINCH") { |x| turnsole.ui.sigwinch_happened! }
+
+  log.remove_sink $stderr
+  turnsole.screen.start_cursing!
+  turnsole.colors.setup!
+  turnsole.ui.start!
+
+  log.debug "initializing log buffer"
+  lmode = Turnsole::LogMode.new turnsole
+  lmode.on_kill { log.clear! } # clear contents of log when buffer is killed
+  log.add_sink lmode, :copy_current => true
+
+  if opts.compose
+    to = Person.from_address_list opts[:compose]
+    mode = ComposeMode.new :to => to, :subj => opts[:subject]
+    ui.spawn "New Message", mode
+    mode.edit_message
+  elsif opts.search
+    SearchResultsMode.spawn_from_query turnsole, opts[:search]
+  else
+    log.debug "initializing inbox buffer"
+    #imode = InboxMode.new
+    #ibuf = turnsole.ui.spawn "Inbox", imode
+
+    textmode = Turnsole::TextMode.new "hello human\nwelcome to sup\ni hope you like it!"
+    tmode = turnsole.screen.spawn "hello", textmode
+
+    mode = Turnsole::InboxMode.new turnsole
+    tmode = turnsole.screen.spawn "inbox", mode
+    mode.load!
+
+    #log.debug "starting periodic poller"
+    #turnsole.poller.start
+  end
+
+  log.debug "ready for interaction!"
+
+  ## begin main loop
+  turnsole.ui.step until turnsole.ui.quit?
+rescue Exception => e
+  log.error "dying due to #{e.class}: #{e.message}"
+  raise
+ensure
+  log.remove_sink lmode # buffer is gone by now
+  log.info "goodbye"
+  turnsole.screen.stop_cursing! if turnsole.screen
+  turnsole.ui.stop! if turnsole.ui
+  log.add_sink $stderr
+  turnsole.shutdown!
+
+  if (fn = ENV['TURNSOLE_PROFILE'])
+    result = RubyProf.stop
+    File.open(fn, 'w') { |io| RubyProf::CallTreePrinter.new(result).print(io) }
+  end
+end
