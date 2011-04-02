@@ -24,7 +24,10 @@ class UI
 
   ## these methods are all globally-callable. go crazy
   def sigwinch_happened!; enqueue :sigwinch end
-  def quit!; @quit = true end
+  def quit!
+    @quit = true
+    enqueue :noop
+  end
   def quit?; @quit end
   def redraw!; enqueue :redraw end
   def flash message; enqueue :flash, message end
@@ -71,6 +74,10 @@ class UI
       end
     when :redraw
       # nothing to do
+    when :noop
+      # nothing to do
+    else
+      raise "unknown event: #{event.inspect}"
     end
   end
 
@@ -93,10 +100,11 @@ private
           ## see comments in http://all-thing.net/ruby-ncurses-and-thread-blocking
           ## for why these next two are possible outputs of threadsafe_blocking_getch
           when nil
-            ## timeout
+            ## timeout -- don't think this actually happens
           when 410
             ## ncurses's way of telling us it's detected a refresh.  since we
-            ## have our own sigwinch handler, we don't do anything.
+            ## have our own sigwinch handler, we get this AFTER we've already processed
+            ## the event, so we don't need to do anything.
           else
             enqueue :keypress, c
           end

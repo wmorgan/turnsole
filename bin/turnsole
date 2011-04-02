@@ -85,8 +85,15 @@ end
 begin
   turnsole.start!
 
-  trap("TERM") { |x| turnsole.ui.quit! }
-  trap("WINCH") { |x| turnsole.ui.sigwinch_happened! }
+  ## the following signal handlers are run by default in the current thread,
+  ## which is also the thread processing the event queue. in order for the
+  ## queue to actually pop when these events are pushed, we need to enqueue
+  ## them from within in another thread. hence the insanity of the Thread.new
+  ## wrappers.
+  ##
+  ## it took me a long time to figure this out.
+  trap("TERM") { |x| Thread.new { turnsole.ui.quit! } }
+  trap("WINCH") { |x| Thread.new { turnsole.ui.sigwinch_happened! } }
 
   log.remove_sink $stderr
   turnsole.screen.start_cursing!
