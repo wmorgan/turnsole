@@ -1,0 +1,6 @@
+Turnsole is a curses client for Heliotrope.
+
+It is a text-based email client. Much of its code is based on / stolen from Sup
+(http://sup.rubyforge.org)
+
+It is a work in progress.
