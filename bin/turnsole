@@ -44,7 +44,7 @@ Usage:
 
 Options are:
 EOS
-  opt :heliotrope_url, "Heliotrope server root URL (default: use value from config)"
+  opt :heliotrope_url, "Heliotrope server root URL (default: use value from config)", :type => String, :short => "u"
   opt :list_hooks, "List all hooks and descriptions, and quit."
   #opt :search, "Search for this query upon startup", :type => String
   #opt :compose, "Compose message to this recipient upon startup", :type => String
