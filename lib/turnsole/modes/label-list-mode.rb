@@ -51,10 +51,12 @@ class LabelListMode < LineCursorMode
   def [] i; @text[i] end
 
   def jump_to_next_new
-    n = ((curpos + 1) ... lines).find { |i| @labels[i][1] > 0 } || (0 ... curpos).find { |i| @labels[i][1] > 0 }
+    n = ((curpos + 1) ... num_lines).find { |i| @unread_counts[@labels[i]] && @unread_counts[@labels[i]] > 0 } ||
+      (0 ... curpos).find { |i| @unread_counts[@labels[i]] && @unread_counts[@labels[i]] > 0 }
+
     if n
       ## jump there if necessary
-      jump_to_line n unless n >= topline && n < botline
+      jump_to_line n unless n >= topline && n <= botline
       set_cursor_pos n
     else
       @context.screen.minibuf.flash "No labels messages with unread messages."
@@ -71,7 +73,7 @@ protected
 
   def regen_text!
     @labels = @context.labels.all_labels.sort
-    @labels.delete_if { |l| @unread_count[l].nil? || @unread_count[l] == 0 } if @unread_only
+    @labels.delete_if { |l| @unread_counts[l].nil? || @unread_counts[l] == 0 } if @unread_only
 
     width = @labels.max_of { |l| l.display_width }
 
