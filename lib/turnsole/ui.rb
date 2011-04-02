@@ -47,8 +47,11 @@ class UI
 
     case event
     when :interrupt
-      # @context.input.ask_yes_or_no "Die ungracefully now?", :yes => :die_ungracefully
-      TODO
+      @context.input.asking do
+        if @context.input.ask_yes_or_no "Die ungracefully now?"
+          raise "O, I die, Horatio; The potent poison quite o'er-crows my spirit!"
+        end
+      end
     when :sigwinch
       @context.screen.resize_screen!
     when :keypress
