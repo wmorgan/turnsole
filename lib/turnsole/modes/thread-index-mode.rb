@@ -113,6 +113,7 @@ EOS
     @threads = []
     @text = []
     @buffer.mark_dirty!
+    @last_schedule_more_size = -1
     schedule_more buffer.content_height
   end
 
