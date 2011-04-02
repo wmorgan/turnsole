@@ -8,39 +8,46 @@ class LabelListMode < LineCursorMode
     k.add :toggle_show_unread_only, "Toggle between showing all labels and those with unread mail", 'u'
   end
 
-  HookManager.register "label-list-filter", <<EOS
-Filter the label list, typically to sort.
-Variables:
-  counted: an array of counted labels.
-Return value:
-  An array of counted labels with sort_by output structure.
-EOS
+  def initialize context
+    super()
 
-  HookManager.register "label-list-format", <<EOS
-Create the sprintf format string for label-list-mode.
-Variables:
-  width: the maximum label width
-  tmax: the maximum total message count
-  umax: the maximum unread message count
-Return value:
-  A format string for sprintf
-EOS
-
-  def initialize
+    @context = context
     @labels = []
-    @text = []
+    @counts = {}
+    @unread_counts = {}
+    @text = ["Loading..."]
     @unread_only = false
-    super
-    UpdateManager.register self
-    regen_text
+
+    @context.ui.add_event_listener self
   end
 
-  def cleanup
-    UpdateManager.unregister self
-    super
+  def cleanup!
+    @context.ui.remove_event_listener self
   end
 
-  def lines; @text.length end
+  def reload!
+    buffer.mark_dirty!
+    load!
+  end
+
+  def load!
+    @context.labels.load! # just for good measure. we won't actually get the results at this point
+    @context.labels.all_labels.each do |l|
+      @context.client.count("~#{l}") do |num|
+        @counts[l] = num
+        regen_text!
+        buffer.mark_dirty!
+      end
+      @context.client.count("~#{l} ~unread") do |num|
+        @unread_counts[l] = num
+        regen_text!
+        buffer.mark_dirty!
+      end
+    end
+    regen_text!
+  end
+
+  def num_lines; @text.length end
   def [] i; @text[i] end
 
   def jump_to_next_new
@@ -50,88 +57,47 @@ EOS
       jump_to_line n unless n >= topline && n < botline
       set_cursor_pos n
     else
-      BufferManager.flash "No labels messages with unread messages."
+      @context.screen.minibuf.flash "No labels messages with unread messages."
     end
-  end
-
-  def focus
-    reload # make sure unread message counts are up-to-date
-  end
-
-  def handle_added_update sender, m
-    reload
   end
 
 protected
 
   def toggle_show_unread_only
     @unread_only = !@unread_only
-    reload
+    regen_text!
+    buffer.mark_dirty!
   end
 
-  def reload
-    regen_text
-    buffer.mark_dirty if buffer
-  end
+  def regen_text!
+    @labels = @context.labels.all_labels.sort
+    @labels.delete_if { |l| @unread_count[l].nil? || @unread_count[l] == 0 } if @unread_only
 
-  def regen_text
-    @text = []
-    labels = LabelManager.all_labels
+    width = @labels.max_of { |l| l.display_width }
 
-    counted = labels.map do |label|
-      string = LabelManager.string_for label
-      total = Index.num_results_for :label => label
-      unread = (label == :unread)? total : Index.num_results_for(:labels => [label, :unread])
-      [label, string, total, unread]
-    end
-
-    if HookManager.enabled? "label-list-filter"
-      counts = HookManager.run "label-list-filter", :counted => counted
+    @text = if @labels.empty?
+      @context.screen.minibuf.flash "No labels with unread messages!" if @labels.empty? && @unread_only
+      []
     else
-      counts = counted.sort_by { |l, s, t, u| s.downcase }
-    end
+      @labels.map do |label|
+        total = @counts[label]
+        total_s = total ? sprintf("%5d", total) : sprintf("%5s", "?")
 
-    width = counts.max_of { |l, s, t, u| s.length }
-    tmax  = counts.max_of { |l, s, t, u| t }
-    umax  = counts.max_of { |l, s, t, u| u }
+        unread = @unread_counts[label]
+        unread_s = unread ? sprintf("%5d", unread) : sprintf("%5s", "?")
 
-    if @unread_only
-      counts.delete_if { | l, s, t, u | u == 0 }
-    end
+        what = total == 1 ? " message" : "messages"
 
-    @labels = []
-    counts.map do |label, string, total, unread|
-      ## if we've done a search and there are no messages for this label, we can delete it from the
-      ## list. BUT if it's a brand-new label, the user may not have sync'ed it to the index yet, so
-      ## don't delete it in this case.
-      ##
-      ## this is all a hack. what should happen is:
-      ##   TODO make the labelmanager responsible for label counts
-      ## and then it can listen to labeled and unlabeled events, etc.
-      if total == 0 && !LabelManager::RESERVED_LABELS.include?(label) && !LabelManager.new_label?(label)
-        debug "no hits for label #{label}, deleting"
-        LabelManager.delete label
-        next
+        [[(unread.nil? || unread == 0 ? :labellist_old : :labellist_new),
+          sprintf("%#{width + 1}s #{total_s} #{what}, #{unread_s} unread", label)]]
       end
-
-      fmt = HookManager.run "label-list-format", :width => width, :tmax => tmax, :umax => umax
-      if !fmt
-        fmt = "%#{width + 1}s %5d %s, %5d unread"
-      end
-
-      @text << [[(unread == 0 ? :labellist_old_color : :labellist_new_color),
-          sprintf(fmt, string, total, total == 1 ? " message" : "messages", unread)]]
-     @labels << [label, unread]
-      yield i if block_given?
-    end.compact
-
-    BufferManager.flash "No labels with unread messages!" if counts.empty? && @unread_only
+    end
   end
 
   def select_label
-    label, num_unread = @labels[curpos]
+    label, count, num_unread = @labels[curpos]
     return unless label
-    LabelSearchResultsMode.spawn_nicely label
+    SearchResultsMode.spawn_from_query @context, "~#{label}"
   end
 end
 

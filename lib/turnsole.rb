@@ -44,6 +44,7 @@ require "turnsole/modes/search-results-mode"
 require "turnsole/modes/help-mode"
 require "turnsole/modes/inbox-mode"
 require "turnsole/modes/completion-mode"
+require "turnsole/modes/label-list-mode"
 
 module Turnsole
   VERSION = "git"
