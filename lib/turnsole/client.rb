@@ -55,6 +55,11 @@ class Client
     perform :thread_state, :args => [thread_id], :callback => lambda { |result| callback.call Set.new(result) }
   end
 
+  ## get the element out of the hash for your convenience
+  def count query, &callback
+    perform :count, :args => [query], :callback => lambda { |result| callback.call result["count"] }
+  end
+
   ## for all other methods, we just send them to the client as is
   def method_missing m, *a, &b
     perform m, :args => a, :callback => b
