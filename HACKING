@@ -5,7 +5,7 @@ You will need:
 
 a) A modern Ruby (1.8.7 or 1.9.2 should both work).
 b) The following gems:
-    trollop ncursesw console
+    trollop ncursesw console locale
 c) A working heliotrope install, at the latest master.
 
 Invoke it like this:
