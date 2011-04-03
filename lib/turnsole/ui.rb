@@ -50,6 +50,10 @@ class UI
 
     case event
     when :interrupt
+      ## we might be interrupted in the middle of asking a question. if so,
+      ## then just cancel it.
+      @context.input.cancel_current_question!
+      @context.screen.minibuf.deactivate_textfield!
       @context.input.asking do
         if @context.input.ask_yes_or_no "Die ungracefully now?"
           raise "O, I die, Horatio; The potent poison quite o'er-crows my spirit!"

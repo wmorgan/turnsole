@@ -45,6 +45,11 @@ class Input
     end
   end
 
+  ## rarely used
+  def cancel_current_question!
+    @question_outer_cont = nil
+  end
+
   def asking_getchar
     what, val = callcc { |c| [:cont, c] }
     case what
