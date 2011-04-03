@@ -48,7 +48,7 @@ class Accounts
   end
 
   def is_account? person; is_account_email?(person.email) end
-  def is_account_email? email; !account_for(email).nil? end
+  def is_account_email? email; account_for(email) end
   def account_for email
     if(a = @by_email[email])
       a
