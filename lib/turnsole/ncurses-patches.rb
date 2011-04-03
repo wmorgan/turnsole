@@ -16,7 +16,7 @@ module Curses
     6.times { |x| 6.times { |y| 6.times { |z| add_color! "c#{x}#{y}#{z}", 16 + z + (6*y) + (36*x) } } }
 
     ## xterm 24-shade grayscale
-    24.times { |x| color! "g#{x}", 16 + (6*6*6) + x }
+    24.times { |x| add_color! "g#{x}", 16 + (6*6*6) + x }
   end
 end
 
