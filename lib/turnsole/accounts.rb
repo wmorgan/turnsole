@@ -22,18 +22,13 @@ class Accounts
     @by_email = {}
     @by_regex = {}
 
-    add_account accounts[:default]
+    add_account accounts[:default], true
     accounts.each { |k, v| add_account v unless k == :default }
   end
 
   ## must be called first with the default account. fills in missing
   ## values from the default account.
   def add_account hash, default=false
-    if default
-      raise ArgumentError, "multiple default accounts" if @default_account
-      @default_account = a
-    end
-
     ## fill fields in from default account
     unless default
       [:address, :signature, :gpgkey].each { |k| hash[k] ||= @default_account.send(k) }
@@ -43,6 +38,10 @@ class Accounts
 
     a = Account.new hash
     @accounts << a
+    if default
+      raise ArgumentError, "multiple default accounts" if @default_account
+      @default_account = a
+    end
 
     ([hash[:email]] + hash[:alternates]).each { |email| @by_email[email] ||= a }
     hash[:regexen].each { |re| @by_regex[Regexp.new(re)] = a }
