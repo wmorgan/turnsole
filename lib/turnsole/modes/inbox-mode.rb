@@ -22,18 +22,23 @@ class InboxMode < ThreadIndexMode
 
   def archive
     return unless cursor_thread
-    thread = cursor_thread # to make sure lambda only knows about 'old' cursor_thread
+    thread = cursor_thread
+    pos = curpos
 
-    UndoManager.register "archiving thread" do
-      thread.apply_label :inbox
-      add_or_unhide thread.first
-      Index.save_thread thread
+    thread.labels -= %w(inbox)
+    @threads -= [thread]
+    regen_text!
+
+    @context.client.set_labels! thread.thread_id, thread.labels
+    @context.ui.broadcast self, :thread, thread.thread_id, :labels => thread.labels
+
+    to_undo "archiving thread" do
+      thread.labels += %w(inbox)
+      @context.client.set_labels! thread.thread_id, thread.labels
+      @context.ui.broadcast self, :thread, thread.thread_id, :labels => thread.labels
+      @threads.insert pos, thread
+      regen_text!
     end
-
-    cursor_thread.remove_label :inbox
-    hide_thread cursor_thread
-    regen_text
-    Index.save_thread thread
   end
 
   def multi_archive threads

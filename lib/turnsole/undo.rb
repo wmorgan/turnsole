@@ -1,6 +1,6 @@
 module Turnsole
 
-## wrappers around a simple undo stack
+## wrappers around a simple undo stack.
 ##
 ## no redo support yet.
 
