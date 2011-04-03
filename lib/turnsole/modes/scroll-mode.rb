@@ -213,7 +213,7 @@ protected
       # return
   end
 
-  def matching_text_array s, regex, oldcolor=:none
+  def matching_text_array s, regex, oldcolor=:default
     s.split(regex).map do |text|
       next if text.empty?
       if text =~ regex
