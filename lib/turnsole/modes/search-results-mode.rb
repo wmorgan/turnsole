@@ -2,14 +2,7 @@ module Turnsole
 
 class SearchResultsMode < ThreadIndexMode
   register_keymap do |k|
-    k.add :refine_search, "Refine search", '|'
     k.add :save_search, "Save search", '%'
-  end
-
-  def refine_search
-    text = BufferManager.ask :search, "refine query: ", (@query[:text] + " ")
-    return unless text && text !~ /^\s*$/
-    SearchResultsMode.spawn_from_query text
   end
 
   def save_search

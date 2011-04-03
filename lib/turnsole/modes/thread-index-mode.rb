@@ -39,6 +39,7 @@ EOS
     k.add_multi "Load all threads (! to confirm) :", '!' do |kk|
       kk.add :load_all_threads, "Load all threads (may list a _lot_ of threads)", '!'
     end
+    k.add :refine_search, "Refine search", '|'
     k.add :cancel_search, "Cancel current search", :ctrl_g
     k.add :reload, "Refresh view", '@'
     k.add :toggle_archived, "Toggle archived status", 'a'
@@ -139,6 +140,14 @@ EOS
     @text = (0 ... @threads.size).map { |i| text_for_thread_at i }
     @lines = {}; @threads.each_with_index { |t, i| @lines[t] = i }
     buffer.mark_dirty!
+  end
+
+  def refine_search
+    @context.input.asking do
+      query = @context.input.ask :search, "refine query: ", (@query + " ")
+      return unless query && query !~ /^\s*$/
+      SearchResultsMode.spawn_from_query @context, query
+    end
   end
 
   ## open up a thread view window
