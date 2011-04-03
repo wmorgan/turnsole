@@ -140,6 +140,7 @@ class Minibuf
   end
 
   def deactivate_textfield!
+    return unless @textfield
     @textfield.deactivate!
     @textfield = nil
     mark_dirty!
