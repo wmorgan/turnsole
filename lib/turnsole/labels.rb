@@ -4,7 +4,7 @@ class Labels
   ## labels that have special semantics in heliotrope
   HELIOTROPE_SPECIAL_LABELS = Set.new %w(starred unread deleted attachment signed encrypted draft sent)
   ## labels that we attach special semantics to
-  TURNSOLE_SPECIAL_LABELS = Set.new %w(inbox spam deleted killed)
+  TURNSOLE_SPECIAL_LABELS = Set.new %w(spam deleted killed)
   ## all special labels user will be unable to add/remove these via normal label mechanisms.
   RESERVED_LABELS = HELIOTROPE_SPECIAL_LABELS + TURNSOLE_SPECIAL_LABELS
 
