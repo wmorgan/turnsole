@@ -61,22 +61,30 @@ EOS
   attr_reader :query
   def initialize context, query, hidden_labels=[]
     super()
+
     @context = context
     @query = query
     @hidden_labels = Set.new hidden_labels
 
-    @threads = []
-    @text = []
-    @lines = {}
+    @results = [] # the threads from the search
+    @threads = [] # the threads we actually display
+    @text = []    # the text on screen
+    @lines = {}   # map from thread to line number
 
-    @date_width = DATE_WIDTH
+    ## we maintain a set of threads that have been removed from this view for
+    ## various reasons (labels changed, being deleted, etc.). on undo, we just
+    ## remove them from this set. this lets us maintain everything in the proper
+    ## order even when threads get removed or added in between do & undo.
+    ##
+    ## so we maintain: @threads = @results - @hidden_threads
+    @hidden_threads = Set.new
 
+    ## various display widgets, per line
     @size_widget_width = nil
     @size_widgets = []
     @date_widget_width = nil
     @date_widgets = []
 
-    @context.ui.add_event_listener self
     @tags = Tagger.new context, self
 
     ## keep track of the last size we had when we scheduled more threads to be
@@ -84,6 +92,8 @@ EOS
     ## when the cursor moves down faster than the network responds.
     @last_schedule_more_size = -1
     to_load_more { |size| schedule_more size }
+
+    @context.ui.add_event_listener self
   end
 
   def cleanup!
@@ -107,10 +117,12 @@ EOS
 
   def reload
     @threads = []
+    @results = []
     @text = []
-    @buffer.mark_dirty!
+    @hidden_threads = Set.new
     @last_schedule_more_size = -1
     schedule_more buffer.content_height
+    @buffer.mark_dirty!
   end
 
   def receive_threads threads
@@ -118,14 +130,15 @@ EOS
     old_cursor_thread = @threads[curpos]
 
     info "got #{threads.size} more threads"
-    @threads = (@threads + threads).uniq_in_order_by { |t| t.thread_id }
+    @results = (@results + threads).uniq_in_order_by { |t| t.thread_id }
     regen_text!
-    new_cursor_thread = @threads.index old_cursor_thread
+    new_cursor_thread = @results.index old_cursor_thread
 
     set_cursor_pos new_cursor_thread if new_cursor_thread
   end
 
   def regen_text!
+    @threads = @results.reject { |t| @hidden_threads.member? t }
     @size_widgets = @threads.map { |t| size_widget_for_thread t }
     @date_widgets = @threads.map { |t| date_widget_for_thread t }
 
@@ -187,6 +200,30 @@ EOS
     l = @lines[t] or return
     what.each { |field, v| t.send "#{field}=", v }
     update_text_for_line! l
+  end
+
+  def modify_thread_labels desc, positions, new_labels_by_thread, opts={}
+    threads = positions.map { |i| @threads[i] }
+    old_labels = threads.map(&:labels)
+    threads.zip(new_labels_by_thread).map { |thread, labels| thread.labels = labels }
+
+    threads.each do |thread|
+      @hidden_threads << thread if opts[:hide]
+      @context.client.set_labels! thread.thread_id, thread.labels # sync to server
+      @context.ui.broadcast self, :thread, thread.thread_id, :labels => thread.labels
+    end
+    regen_text!
+
+    to_undo desc do
+      threads.zip(old_labels).each { |thread, labels| thread.labels = labels }
+      threads.each do |thread|
+        @hidden_threads.delete thread if opts[:hide]
+        @context.client.set_labels! thread.thread_id, thread.labels # sync to server
+        @context.ui.broadcast self, :thread, thread.thread_id, :labels => thread.labels
+      end
+
+      regen_text!
+    end
   end
 
   if false
@@ -525,7 +562,6 @@ EOS
 
   def edit_labels
     thread = cursor_thread or return
-    pos = curpos
 
     old_labels = thread.labels
     speciall = @hidden_labels + @context.labels.reserved_labels
@@ -535,23 +571,8 @@ EOS
       user_labels = @context.input.ask_for_labels :label, "Labels for thread: ", modifyl, @hidden_labels
       return unless user_labels
 
-      pos = curpos
-      old_labels = thread.labels
-      new_labels = keepl + user_labels
-
-      thread.labels = new_labels
-      update_text_for_line! curpos
-
-      @context.client.set_labels! thread.thread_id, thread.labels
-      @context.ui.broadcast self, :thread, thread.thread_id, :labels => thread.labels
-      @context.labels.prune!
-
-      to_undo "labeling thread" do
-        thread.labels = old_labels
-        @context.client.set_labels! thread.thread_id, thread.labels
-        @context.ui.broadcast self, :thread, thread.thread_id, :labels => thread.labels
-        update_text_for_line! pos
-      end
+      modify_thread_labels "changing thread labels", [curpos], [keepl + user_labels]
+      @context.labels.prune! # why not?
     end
   end
 
