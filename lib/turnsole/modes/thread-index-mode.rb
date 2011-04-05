@@ -11,11 +11,6 @@ class ThreadIndexMode < LineCursorMode
   FROM_WIDTH_PORTION = 0.2
   LOAD_MORE_THREAD_NUM = 20
 
-  ## we never show these directly because we change the display instead.  these
-  ## are exactly those set of labels that Heliotrope generates from message
-  ## state.
-  ALWAYS_HIDDEN_LABELS = %w(unread inbox attachment draft)
-
   HookManager.register "index-mode-size-widget", <<EOS
 Generates the per-thread size widget for each thread.
 Variables:
@@ -768,7 +763,8 @@ protected
     date_padding = @date_widget_width - date_widget.display_width
     date_widget_text = sprintf "%#{date_padding}s%s", "", date_widget
 
-    labels = Set.new(t.labels) - @hidden_labels - ALWAYS_HIDDEN_LABELS
+    ## don't show any labels that we turn into state
+    labels = Set.new(t.labels) - @hidden_labels - @context.labels.reserved_labels
 
     [
       [:tagged, @tags.tagged?(t) ? ">" : " "],
