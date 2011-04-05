@@ -60,6 +60,11 @@ class Client
     perform :count, :args => [query], :callback => lambda { |result| callback.call result["count"] }
   end
 
+  ## get the element out of the hash for your convenience
+  def size &callback
+    perform :size, :callback => lambda { |result| callback.call result["size"] }
+  end
+
   ## for all other methods, we just send them to the client as is
   def method_missing m, *a, &b
     perform m, :args => a, :callback => b

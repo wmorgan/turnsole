@@ -11,6 +11,8 @@ class InboxMode < ThreadIndexMode
     super context, "~inbox", %w(inbox)
     raise "only can have one inbox" if defined?(@@instance)
     @@instance = self
+
+    @index_size = 0 # loaded periodically
   end
 
   def is_relevant? m; (m.labels & [:spam, :deleted, :killed, :inbox]) == Set.new([:inbox]) end
@@ -41,6 +43,12 @@ class InboxMode < ThreadIndexMode
     end
     regen_text
     threads.each { |t| Index.save_thread t }
+  end
+
+  ## we'll plug this in here... not sure if it's a good idea or not.
+  def receive_threads(*a)
+    super(*a)
+    @context.client.size { |size| @index_size = size }
   end
 
   def read_and_archive
@@ -98,8 +106,8 @@ class InboxMode < ThreadIndexMode
     flush_index
   end
 
-  def status
-    super + "    #{Index.size} messages in index"
+  def status_bar_text
+    super + "    #{@index_size} messages in index"
   end
 end
 
