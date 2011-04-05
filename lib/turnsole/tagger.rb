@@ -1,11 +1,12 @@
 module Turnsole
 
-## simple class to capture tagging of things and applying actions to said things
+## simple class to capture tagging of things and applying actions to them
 class Tagger
-  def initialize mode, context, noun="thread", plural_noun=nil
+  def initialize context, mode, noun="thread", plural_noun=nil
+    @context = context
     @mode = mode
-    @tagged = {}
     @noun = noun
+    @tagged = {}
     @plural_noun = plural_noun || (@noun + "s")
   end
 

@@ -75,9 +75,9 @@ EOS
     @size_widgets = []
     @date_widget_width = nil
     @date_widgets = []
-    @tags = Tagger.new self, context
 
     @context.ui.add_event_listener self
+    @tags = Tagger.new context, self
 
     ## keep track of the last size we had when we scheduled more threads to be
     ## loaded, so that we don't duplicate the request. duplication can happen
