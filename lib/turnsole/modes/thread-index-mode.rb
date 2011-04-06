@@ -66,18 +66,9 @@ EOS
     @query = query
     @hidden_labels = Set.new hidden_labels
 
-    @results = [] # the threads from the search
     @threads = [] # the threads we actually display
     @text = []    # the text on screen
     @lines = {}   # map from thread to line number
-
-    ## we maintain a set of threads that have been removed from this view for
-    ## various reasons (labels changed, being deleted, etc.). on undo, we just
-    ## remove them from this set. this lets us maintain everything in the proper
-    ## order even when threads get removed or added in between do & undo.
-    ##
-    ## so we maintain: @threads = @results - @hidden_threads
-    @hidden_threads = Set.new
 
     ## various display widgets, per line
     @size_widget_width = nil
@@ -117,7 +108,6 @@ EOS
 
   def reload
     @threads = []
-    @results = []
     @text = []
     @hidden_threads = Set.new
     @last_schedule_more_size = -1
@@ -130,15 +120,19 @@ EOS
     old_cursor_thread = @threads[curpos]
 
     info "got #{threads.size} more threads"
-    @results = (@results + threads).uniq_in_order_by { |t| t.thread_id }
+    @threads += threads
+    sort_threads!
     regen_text!
-    new_cursor_thread = @results.index old_cursor_thread
+    new_cursor_thread = @threads.index old_cursor_thread
 
     set_cursor_pos new_cursor_thread if new_cursor_thread
   end
 
+  def sort_threads!
+    @threads = @threads.uniq_by { |t| t.thread_id }.sort_by { |t| t.date }.reverse
+  end
+
   def regen_text!
-    @threads = @results.reject { |t| @hidden_threads.member? t }
     @size_widgets = @threads.map { |t| size_widget_for_thread t }
     @date_widgets = @threads.map { |t| date_widget_for_thread t }
 
@@ -195,11 +189,23 @@ EOS
     end
   end
 
-  def handle_thread_update sender, thread_id, what
-    t = @threads.find { |t| t.thread_id == thread_id } or return
-    l = @lines[t] or return
-    what.each { |field, v| t.send "#{field}=", v }
-    update_text_for_line! l
+  def handle_thread_update sender, updated_thread, what
+    t, index = @threads.find_with_index { |x| x.thread_id == updated_thread.thread_id }
+
+    if t # we have this thread currently
+      if is_relevant?(t) == false # BUT it is no longer relevant
+        @threads.delete_at index
+        regen_text!
+      else # we will keep the thread and just update the display
+        l = @lines[t]
+        what.each { |field, v| t.send("#{field}=", v) }
+        update_text_for_line! l
+      end
+    elsif is_relevant?(updated_thread) # we don't have it, and we need to add it
+      @threads << updated_thread
+      sort_threads!
+      regen_text! # rebuild everybody!
+    end
   end
 
   def modify_thread_labels desc, positions, new_labels_by_thread, opts={}
@@ -208,9 +214,9 @@ EOS
     threads.zip(new_labels_by_thread).map { |thread, labels| thread.labels = labels }
 
     threads.each do |thread|
-      @hidden_threads << thread if opts[:hide]
       @context.client.set_labels! thread.thread_id, thread.labels # sync to server
-      @context.ui.broadcast self, :thread, thread.thread_id, :labels => thread.labels
+      @context.ui.broadcast self, :thread, thread, :labels => thread.labels
+      drop_thread thread if is_relevant?(thread) == false
     end
     regen_text!
 
@@ -219,12 +225,23 @@ EOS
       threads.each do |thread|
         @hidden_threads.delete thread if opts[:hide]
         @context.client.set_labels! thread.thread_id, thread.labels # sync to server
-        @context.ui.broadcast self, :thread, thread.thread_id, :labels => thread.labels
+        @context.ui.broadcast self, :thread, thread, :labels => thread.labels
+        if is_relevant?(thread) == false
+          drop_thread thread
+        elsif is_relevant?(thread)
+          add_thread thread
+        end
       end
 
       regen_text!
     end
   end
+
+  ## overwrite me! takes a thread that has just been updated. should return
+  ## false if the thread does not belong in this view, true if it does, and
+  ## nil if it's unknown.
+  def is_relevant? t; nil end
+
 
   if false
     def handle_labeled_update sender, m
@@ -247,9 +264,6 @@ EOS
         handle_simple_update(*a)
       end
     end
-
-    ## overwrite me!
-    def is_relevant? m; false; end
 
     def handle_added_update sender, m
       add_or_unhide m
@@ -404,12 +418,14 @@ EOS
   end
 
   def toggle_archived
-    t = cursor_thread or return
-    undo = actually_toggle_archived t
-    UndoManager.register "deleting/undeleting thread #{t.first.id}", undo, lambda { update_text_for_line! curpos },
-                         lambda { Index.save_thread t }
-    update_text_for_line! curpos
-    Index.save_thread t
+    return unless cursor_thread
+    labels = if cursor_thread.has_label?("inbox")
+      cursor_thread.labels - %w(inbox)
+    else
+      cursor_thread.labels + %w(inbox)
+    end
+
+    modify_thread_labels "archiving/unarchiving thread", [curpos], [labels]
   end
 
   def multi_toggle_archived threads
@@ -698,17 +714,7 @@ protected
     update
   end
 
-  def hide_thread t
-    @mutex.synchronize do
-      i = @threads.index(t) or return
-      raise "already hidden" if @hidden_threads[t]
-      @hidden_threads[t] = true
-      @threads.delete_at i
-      @size_widgets.delete_at i
-      @date_widgets.delete_at i
-      @tags.drop_tag_for t
-    end
-  end
+  def drop_thread t; @threads.delete t end
 
   def update_text_for_line! l
     need_update = false

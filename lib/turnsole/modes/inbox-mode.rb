@@ -4,23 +4,26 @@ class InboxMode < ThreadIndexMode
   register_keymap do |k|
     ## overwrite toggle_archived with archive
     k.add :archive, "Archive thread (remove from inbox)", 'a'
-    k.add :read_and_archive, "Archive thread (remove from inbox) and mark read", 'A'
+    k.add :read_and_archive, "Archive thread and mark read", 'A'
   end
 
   def initialize context
     super context, "~inbox", %w(inbox)
+
+
+    ## label-list-mode wants to be able to raise us if the user selects
+    ## the "inbox" label, so we need to keep our singletonness around
     raise "only can have one inbox" if defined?(@@instance)
     @@instance = self
 
     @index_size = 0 # loaded periodically
   end
 
-  def is_relevant? m; (m.labels & [:spam, :deleted, :killed, :inbox]) == Set.new([:inbox]) end
-
-  ## label-list-mode wants to be able to raise us if the user selects
-  ## the "inbox" label, so we need to keep our singletonness around
   def self.instance; @@instance; end
+
   def killable?; false; end
+
+  def is_relevant? t; t.has_label?("inbox") end
 
   def archive
     return unless cursor_thread

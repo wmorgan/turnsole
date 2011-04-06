@@ -298,16 +298,15 @@ class Fixnum
 end
 
 module Enumerable
-  def uniq_in_order_by
-    ret = []
-    h = {}
-    each do |x|
+  def uniq_by
+    s = Set.new
+    select do |x|
       v = yield x
-      next if h[x]
-      h[x] = true
-      ret << x
+      unless s.member?(v)
+        s << v
+        true
+      end
     end
-    ret
   end
 
   def map_with_index
@@ -324,6 +323,11 @@ module Enumerable
     ret = nil
     find { |e| ret ||= yield(e) }
     ret
+  end
+
+  def find_with_index
+    each_with_index { |x, i| return [x, i] if yield(x) }
+    nil
   end
 
   ## returns the maximum shared prefix of an array of strings
