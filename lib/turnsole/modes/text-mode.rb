@@ -7,31 +7,33 @@ class TextMode < ScrollMode
     k.add :pipe, "Pipe to process", '|'
   end
 
-  def initialize context, text="", filename=nil
+  def initialize context, text, default_filename=nil
     @context = context
     @text = text
-    @filename = filename
+    @default_filename = default_filename
     update_lines!
     super(context)
   end
 
   def save_to_disk
-    fn = BufferManager.ask_for_filename :filename, "Save to file: ", @filename
-    save_to_file(fn) { |f| f.puts text } if fn
+    @context.input.asking do
+      fn = @context.input.ask_for_filename :filename, "Save to file: ", @default_filename
+      @context.ui.save_to_file(fn) { |f| f.puts text } if fn
+    end
   end
 
   def pipe
-    command = BufferManager.ask(:shell, "pipe command: ")
-    return if command.nil? || command.empty?
+    @context.input.asking do
+      command = @context.input.ask(:shell, "pipe command: ")
+      return if command.nil? || command.empty?
 
-    output = pipe_to_process(command) do |stream|
-      @text.each { |l| stream.puts l }
-    end
+      output = @context.ui.pipe_to_process(command) do |stream|
+        @text.each_line { |l| stream.puts l }
+      end
 
-    if output
-      BufferManager.spawn "Output of '#{command}'", TextMode.new(output.ascii)
-    else
-      BufferManager.flash "'#{command}' done!"
+      if output
+        @context.screen.spawn "Output of '#{command}'", TextMode.new(@context, output.force_to_ascii)
+      end
     end
   end
 
