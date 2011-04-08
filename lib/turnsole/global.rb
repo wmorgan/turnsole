@@ -68,7 +68,7 @@ EOS
       end
     when :help
       mode = @context.screen.focus_buf.mode
-      @context.screen.spawn_unless_exists("<help for #{mode.name}>") { HelpMode.new mode, GLOBAL_KEYMAP }
+      @context.screen.spawn_unless_exists("<help for #{mode.name}>") { HelpMode.new @context, mode, GLOBAL_KEYMAP }
     when :roll_buffers; @context.screen.roll_buffers
     when :roll_buffers_backwards; @context.screen.roll_buffers_backwards
     when :kill_buffer; @context.screen.kill_buffer_safely @context.screen.focus_buf

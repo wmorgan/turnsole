@@ -127,8 +127,8 @@ EOS
   ## - @chunk_lines: a map from row #s to Chunk objects
   ## - @person_lines: a map from row #s to Person objects
 
-  def initialize thread_summary, parent_mode, context
-    super()
+  def initialize context, thread_summary, parent_mode
+    super(context)
     @thread_summary = thread_summary
     @context = context
 

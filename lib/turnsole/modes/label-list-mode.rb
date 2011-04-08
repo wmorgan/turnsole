@@ -9,7 +9,7 @@ class LabelListMode < LineCursorMode
   end
 
   def initialize context
-    super()
+    super
 
     @context = context
     @labels = []

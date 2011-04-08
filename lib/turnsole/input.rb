@@ -112,7 +112,7 @@ class Input
         shorts = textfield.completions.map { |full, short| short }
         prefix_len = shorts.shared_prefix.length
 
-        mode = CompletionMode.new shorts, :header => "Possible completions for \"#{textfield.answer}\": ", :prefix_len => prefix_len
+        mode = CompletionMode.new @context, shorts, :header => "Possible completions for \"#{textfield.answer}\": ", :prefix_len => prefix_len
         completion_buf = @context.screen.spawn "<completions>", mode, :height => 10
       elsif textfield.roll_completions?
         completion_buf.mode.roll!

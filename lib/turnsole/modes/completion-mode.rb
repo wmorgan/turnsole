@@ -3,12 +3,12 @@ module Turnsole
 class CompletionMode < ScrollMode
   INTERSTITIAL = "  "
 
-  def initialize list, opts={}
+  def initialize context, list, opts={}
     @list = list
     @header = opts[:header]
     @prefix_len = opts[:prefix_len]
     @lines = nil
-    super :slip_rows => 1, :twiddles => false
+    super context, :slip_rows => 1, :twiddles => false
   end
 
   def num_lines

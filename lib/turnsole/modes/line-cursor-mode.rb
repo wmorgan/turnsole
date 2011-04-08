@@ -16,10 +16,11 @@ class LineCursorMode < ScrollMode
 
   attr_reader :curpos
 
-  def initialize opts={}
+  def initialize context, opts={}
+    @context = context
     @cursor_top = @curpos = opts.delete(:skip_top_rows) || 0
     @load_more_callbacks = []
-    super opts
+    super
   end
 
   def draw

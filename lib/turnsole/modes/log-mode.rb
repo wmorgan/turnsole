@@ -14,7 +14,7 @@ class LogMode < TextMode
     @context = context
     @follow = true
     @on_kill = []
-    super()
+    super context, ""
   end
 
   ## register callbacks for when the buffer is killed

@@ -10,7 +10,7 @@ class BufferListMode < LineCursorMode
   def initialize context
     @context = context
     regen_text!
-    super()
+    super
   end
 
   def num_lines; @text.length end

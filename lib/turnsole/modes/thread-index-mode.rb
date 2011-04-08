@@ -60,7 +60,7 @@ EOS
 
   attr_reader :query
   def initialize context, query, hidden_labels=[]
-    super()
+    super(context)
 
     @context = context
     @query = query
@@ -157,7 +157,7 @@ EOS
     thread ||= cursor_thread
     return unless thread
 
-    mode = ThreadViewMode.new thread, self, @context
+    mode = ThreadViewMode.new @context, thread, self
     @context.screen.spawn thread.subject, mode
     mode.load!
   end

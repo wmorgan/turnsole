@@ -1,9 +1,9 @@
 module Turnsole
 
 class HelpMode < TextMode
-  def initialize mode, global_keymap
+  def initialize context, mode, global_keymap
     title = "Help for #{mode.name}"
-    super <<EOS
+    super context, <<EOS
 #{title}
 #{'=' * title.length}
 

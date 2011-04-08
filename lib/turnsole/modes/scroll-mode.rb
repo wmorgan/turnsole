@@ -30,7 +30,8 @@ class ScrollMode < Mode
     k.add :continue_search_in_buffer, "Jump to next search occurrence in buffer", 'n'
   end
 
-  def initialize opts={}
+  def initialize context, opts={}
+    @context = context
     @topline, @botline, @leftcol = 0, 0, 0
     @slip_rows = opts[:slip_rows] || 0 # when we pgup/pgdown,
                                        # how many lines do we keep?

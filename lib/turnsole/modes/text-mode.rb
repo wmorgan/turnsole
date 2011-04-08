@@ -7,11 +7,12 @@ class TextMode < ScrollMode
     k.add :pipe, "Pipe to process", '|'
   end
 
-  def initialize text="", filename=nil
+  def initialize context, text="", filename=nil
+    @context = context
     @text = text
     @filename = filename
     update_lines!
-    super()
+    super(context)
   end
 
   def save_to_disk
