@@ -228,7 +228,7 @@ class String
     self
   end
 
-  def ascii
+  def force_to_ascii
     out = ""
     each_byte do |b|
       if (b & 128) != 0
@@ -457,7 +457,7 @@ class Iconv
       s
     rescue Errno::EINVAL, Iconv::InvalidEncoding, Iconv::InvalidCharacter, Iconv::IllegalSequence, String::CheckError
       debug "couldn't transcode text from #{orig_charset} (#{charset}) to #{target} (#{text[0 ... 20].inspect}...): got #{$!.class} (#{$!.message})"
-      text.ascii
+      text.force_to_ascii
     end
   end
 end

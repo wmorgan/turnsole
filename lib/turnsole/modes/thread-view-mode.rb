@@ -696,7 +696,7 @@ EOS
     end
 
     if output
-      BufferManager.spawn "Output of '#{command}'", TextMode.new(output.ascii)
+      BufferManager.spawn "Output of '#{command}'", TextMode.new(output.force_to_ascii)
     else
       BufferManager.flash "'#{command}' done!"
     end
@@ -923,7 +923,7 @@ private
       @context.screen.minibuf.flash "viewing #{chunk.content_type} attachment..."
       chunk.view! or begin
         @context.screen.minibuf.flash "Couldn't execute view command, viewing as text."
-        @context.screen.spawn "Attachment: #{chunk.filename}", TextMode.new(chunk.to_s.ascii, chunk.filename)
+        @context.screen.spawn "Attachment: #{chunk.filename}", TextMode.new(chunk.to_s.force_to_ascii, chunk.filename)
       end
     end
   end
