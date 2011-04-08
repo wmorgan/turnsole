@@ -177,7 +177,7 @@ EOS
     ## this.
     @context.client.thread_state(@thread_summary.thread_id) do |state|
       ## and send it out to everyone
-      @context.ui.broadcast self, :thread, @thread_summary.thread_id, :state => state
+      @context.ui.broadcast self, :thread, @thread_summary, :state => state
     end
   end
 
