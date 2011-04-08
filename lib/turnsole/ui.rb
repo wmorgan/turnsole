@@ -1,9 +1,12 @@
 require 'thread'
+require 'open3'
 
 ## handles starting and stopping ncurses, taking input from the keyboard, the
 ## main event loop, and the broadcast/listen stuff
 module Turnsole
 class UI
+  include LogsStuff
+
   def initialize context
     @context = context
     @cursing = false
@@ -13,6 +16,8 @@ class UI
     @event_listeners = []
     Console.init_locale!
   end
+
+  def log; @context.log end
 
   def start!
     @input_thread = start_input_thread!
@@ -91,6 +96,64 @@ class UI
     Ncurses.refresh
     Ncurses.curs_set 0
     success
+  end
+
+  def save_to_file fn, talk=true
+    if File.exists? fn
+      return unless @context.input.ask_yes_or_no "File \"#{fn}\" exists. Overwrite?"
+    end
+
+    begin
+      File.open(fn, "w") { |f| yield f }
+      @context.screen.minibuf.flash "Successfully wrote #{fn}." if talk
+      true
+    rescue SystemCallError, IOError => e
+      m = "Error writing file: #{e.message}"
+      info m
+      @context.screen.minibuf.flash m
+      false
+    end
+  end
+
+  def pipe_to_process command
+    begin
+      Open3.popen3(command) do |input, output, error|
+        err, data, * = IO.select [error], [input], nil
+
+        unless err.empty?
+          message = err.first.read
+          if message =~ /^\s*$/
+            warn "error running #{command} (but no error message)"
+            @context.screen.minibuf.flash "Error running #{command}!"
+          else
+            warn "error running #{command}: #{message}"
+            @context.screen.minibuf.flash "Error: #{message}"
+          end
+          return
+        end
+
+        data = data.first
+        data.sync = false # buffer input
+
+        yield data
+        data.close # output will block unless input is closed
+
+        ## BUG?: shows errors or output but not both....
+        data, * = IO.select [output, error], nil, nil
+        data = data.first
+
+        if data.eof
+          @context.screen.minibuf.flash "'#{command}' done!"
+          nil
+        else
+          data.read
+        end
+      end
+    rescue SystemCallError => e
+      warn "error running #{command}: #{e.message}"
+      @context.screen.minibuf.flash "Error: #{e.message}"
+      nil
+    end
   end
 
 private
