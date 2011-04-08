@@ -84,7 +84,7 @@ private
       while true
         begin
           cmd, args, opts = @q.pop
-          pretty = "#{cmd}#{args.inspect}".display_slice(0, 30)
+          pretty = "#{cmd}#{args.inspect}".display_slice(0, 50)
           debug "sending to server: #{pretty}"
           @context.ui.enqueue :redraw
 

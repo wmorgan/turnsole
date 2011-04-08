@@ -186,7 +186,7 @@ EOS
     swidth = string.display_width
     if swidth > Ncurses.cols
       swidth = Ncurses.cols
-      string = string.display_slice(0, width)
+      string = string.display_slice(0, swidth)
     end
 
     clearwidth = Ncurses.cols - swidth
