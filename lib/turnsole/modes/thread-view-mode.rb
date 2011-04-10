@@ -361,6 +361,7 @@ EOS
       layout.state = (layout.state != :closed ? :closed : :open)
       #cursor_down if layout.state == :closed # too annoying
       regen_text!
+      load_any_open_messages!
     elsif chunk.viewable?
       view chunk
     end
@@ -569,6 +570,7 @@ EOS
     @global_message_state = (@global_message_state == :closed ? :open : :closed)
     @layouts.each { |m, l| l.state = @global_message_state }
     regen_text!
+    load_any_open_messages!
   end
 
   def collapse_non_new_messages
@@ -714,7 +716,7 @@ private
   end
 
   def load_any_open_messages!
-    open = @thread.select { |m, depth| !m.fake? && @messages[m.message_id].nil? && @layouts[m] != :closed }
+    open = @thread.select { |m, depth| !m.fake? && @messages[m.message_id].nil? && @layouts[m].state != :closed }
     open.each { |m, depth| @context.client.load_message(m.message_id) { |message| receive_message message } }
   end
 
