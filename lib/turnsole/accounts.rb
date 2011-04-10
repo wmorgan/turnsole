@@ -14,7 +14,8 @@ class Account
 end
 
 class Accounts
-  attr_accessor :default_account
+
+  attr_accessor :accounts, :default_account
 
   def initialize accounts
     @default_account = nil

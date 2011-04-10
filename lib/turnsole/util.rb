@@ -224,8 +224,30 @@ class String
   end
 
   def safely_mark_encoding! encoding
-    force_encoding encoding if in_ruby19_hell?
-    self
+    if in_ruby19_hell?
+      s = frozen? ? dup : self
+      s.force_encoding encoding
+    else
+      self
+    end
+  end
+
+  def safely_mark_ascii
+    if in_ruby19_hell?
+      s = frozen? ? dup : self
+      s.force_encoding Encoding::ASCII
+    else
+      self
+    end
+  end
+
+  def safely_mark_binary
+    if in_ruby19_hell?
+      s = frozen? ? dup : self
+      s.force_encoding Encoding::BINARY
+    else
+      self
+    end
   end
 
   def force_to_ascii
@@ -237,8 +259,7 @@ class String
         out << b.chr
       end
     end
-    out.force_encoding Encoding::UTF_8 if out.respond_to? :force_encoding
-    out
+    safely_mark_ascii
   end
 
   def ascii_only?
@@ -437,10 +458,7 @@ end
 class Iconv
   # TODO make this less painful, e.g. adapt heliotrope version
   def self.easy_decode target, orig_charset, text
-    if text.respond_to? :force_encoding
-      text = text.dup
-      text.force_encoding Encoding::BINARY
-    end
+    text = text.safely_mark_binary
     charset = case orig_charset
       when /UTF[-_ ]?8/i then "utf-8"
       when /(iso[-_ ])?latin[-_ ]?1$/i then "ISO-8859-1"

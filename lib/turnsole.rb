@@ -32,6 +32,7 @@ require "turnsole/chunks"
 require "turnsole/textfield"
 require "turnsole/labels"
 require "turnsole/undo"
+require "turnsole/crypto"
 
 require "turnsole/modes/scroll-mode"
 require "turnsole/modes/text-mode"
@@ -58,7 +59,7 @@ class Turnsole # this is passed around as @context to many things
   HOOK_DIR  = File.join BASE_DIR, "hooks"
   LOG_FN    = File.join BASE_DIR, "log.txt"
 
-  attr_reader :encoding, :logger
+  attr_reader :encoding, :logger, :config
   def initialize
     FileUtils.mkdir_p BASE_DIR
     @config = Config.new CONFIG_FN
@@ -84,7 +85,7 @@ No variables.
 No return value.
 EOS
 
-  attr_reader :hooks, :colors, :ui, :screen, :input, :global, :client, :accounts, :labels
+  attr_reader :hooks, :colors, :ui, :screen, :input, :global, :client, :accounts, :labels, :crypto
   def setup! override_url
     @encoding = detect_encoding
     @hooks = HookManager.new HOOK_DIR, self
@@ -96,6 +97,7 @@ EOS
     @client = Client.new self, (override_url || @config.heliotrope_url)
     @accounts = Accounts.new @config.accounts
     @labels = Labels.new self
+    @crypto = Crypto.new
   end
 
   def start!
@@ -109,16 +111,14 @@ EOS
 
   def detect_encoding
     ## determine encoding and character set
-    encoding = Locale.current.charset
-    encoding = "UTF-8" if encoding == "utf8"
-
-    encoding ||= begin
+    e = if(encoding = Locale.current.charset)
+      info "system encoding is #{encoding.inspect}"
+      encoding
+    else
       warn "can't find system encoding from locale, defaulting to utf-8"
       "UTF-8"
     end
-
-    info "system encoding is #{encoding.inspect}"
-    encoding
+    e == "utf8" ? "UTF-8" : e
   end
 
   def shutdown!
