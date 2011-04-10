@@ -32,6 +32,18 @@ class Person
 
   def mediumname; @name || @handle || @email end
 
+  def email_ready_address
+    if @name && @email
+      if @name =~ /[",@]/
+        "#{@name.inspect} <#{@email}>" # escape quotes
+      else
+        "#{@name} <#{@email}>"
+      end
+    else
+      @email
+    end
+  end
+
   ## copied and pasted from heliotrope. oh yeahhhhhh
   ##
   ## takes a string, returns a [name, email, emailnodomain] combo

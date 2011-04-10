@@ -1,16 +1,15 @@
 module Turnsole
 
 class Account
-  attr_accessor :address, :signature, :gpgkey, :person
+  attr_accessor :signature, :gpgkey, :person
 
   def initialize h
-    @address = h[:address]
     @signature = h[:signature]
     @gpgkey = h[:gpgkey]
     @person = Person.from_string h[:address]
   end
 
-  %w(name email handle displayname).each { |m| define_method(m) { @person.send(m) } }
+  %w(name email handle displayname email_ready_address).each { |m| define_method(m) { @person.send(m) } }
 end
 
 class Accounts

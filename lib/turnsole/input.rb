@@ -216,15 +216,15 @@ class Input
     default = default_contacts.is_a?(String) ? default_contacts : default_contacts.map { |s| s.to_s }.join(", ")
     default += " " unless default.empty?
 
-    recent = Index.load_contacts(AccountManager.user_emails, :num => 10).map { |c| [c.full_address, c.email] }
-    contacts = ContactManager.contacts.map { |c| [ContactManager.alias_for(c), c.full_address, c.email] }
+    recent = []#Index.load_contacts(AccountManager.user_emails, :num => 10).map { |c| [c.full_address, c.email] }
+    contacts = []#ContactManager.contacts.map { |c| [ContactManager.alias_for(c), c.full_address, c.email] }
 
     completions = (recent + contacts).flatten.uniq
-    completions += HookManager.run("extra-contact-addresses") || []
-    answer = BufferManager.ask_many_emails_with_completions domain, question, completions, default
+    completions += @context.hooks.run("extra-contact-addresses") || []
+    answer = ask_many_emails_with_completions domain, question, completions, default
 
     if answer
-      answer.split_on_commas.map { |x| ContactManager.contact_for(x) || Person.from_address(x) }
+      answer.split_on_commas.map { |x| Person.from_string(x) }#{ |x| ContactManager.contact_for(x) || Person.from_address(x) }
     end
   end
 

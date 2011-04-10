@@ -104,7 +104,7 @@ EOS
           end
         end
       end
-    when :compose; ComposeMode.spawn_nicely
+    when :compose; ComposeMode.spawn_nicely @context
     when :poll; PollManager.poll_now!
     when :recall_draft
       case DraftManager.num_drafts
