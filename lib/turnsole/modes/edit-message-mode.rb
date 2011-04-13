@@ -1,6 +1,7 @@
 require 'tempfile'
 require 'socket' # just for gethostname!
 require 'pathname'
+require 'rmail'
 
 module Turnsole
 
@@ -264,11 +265,11 @@ protected
 
   def update!
     regen_text!
-    buffer.mark_dirty
+    buffer.mark_dirty!
   end
 
   def regen_text!
-    header, @header_lines = format_headers(@header - NON_EDITABLE_HEADERS) + [""]
+    header, @header_lines = format_headers(@header - NON_EDITABLE_HEADERS)
     @text = header + [""] + @body
     @text += sig_lines unless @context.config.edit_signature
 
@@ -282,14 +283,10 @@ protected
   end
 
   def parse_file fn
-    File.open(fn) do |f|
-      header = Source.parse_raw_email_header(f).inject({}) { |h, (k, v)| h[k.capitalize] = v; h } # lousy HACK
-      body = f.readlines.map { |l| l.chomp }
-
-      header.delete_if { |k, v| NON_EDITABLE_HEADERS.member? k }
-      header.each { |k, v| header[k] = parse_header k, v }
-
-      [header, body]
+    begin
+      m = RMail::Parser.read(IO.read(fn))
+      headers = m.header.to_a.to_h - NON_EDITABLE_HEADERS # bleargh!!
+      [headers, m.body.to_s.split("\n")]
     end
   end
 
@@ -344,10 +341,10 @@ protected
       if @header["From"] =~ /<?(\S+@(\S+?))>?$/
         $1
       else
-        AccountManager.default_account.email
+        @context.accounts.default_account.email
       end
 
-    acct = AccountManager.account_for(from_email) || AccountManager.default_account
+    acct = @context.accounts.account_for(from_email) || @context.accounts.default_account
     BufferManager.flash "Sending..."
 
     begin
@@ -401,8 +398,8 @@ protected
 
     ## do whatever crypto transformation is necessary
     if @crypto_selector && @crypto_selector.val != :none
-      from_email = Person.from_address(@header["From"]).email
-      to_email = [@header["To"], @header["Cc"], @header["Bcc"]].flatten.compact.map { |p| Person.from_address(p).email }
+      from_email = Person.from_string(@header["From"]).email
+      to_email = [@header["To"], @header["Cc"], @header["Bcc"]].flatten.compact.map { |p| Person.from_string(p).email }
       if m.multipart?
         m.each_part {|p| p = transfer_encode p}
       else
@@ -492,8 +489,8 @@ private
   end
 
   def mentions_attachments?
-    if HookManager.enabled? "mentions-attachments"
-      HookManager.run "mentions-attachments", :header => @header, :body => @body
+    if @context.hooks.enabled? "mentions-attachments"
+      @context.hooks.run "mentions-attachments", :header => @header, :body => @body
     else
       @body.any? {  |l| l =~ /^[^>]/ && l =~ /\battach(ment|ed|ing|)\b/i }
     end
@@ -504,19 +501,19 @@ private
   end
 
   def sig_lines
-    p = Person.from_address(@header["From"])
+    p = Person.from_string(@header["From"])
     from_email = p && p.email
 
     ## first run the hook
-    hook_sig = HookManager.run "signature", :header => @header, :from_email => from_email
+    hook_sig = @context.hooks.run "signature", :header => @header, :from_email => from_email
 
     return [] if hook_sig == :none
     return ["", "-- "] + hook_sig.split("\n") if hook_sig
 
     ## no hook, do default signature generation based on config.yaml
     return [] unless from_email
-    sigfn = (AccountManager.account_for(from_email) ||
-             AccountManager.default_account).signature
+    sigfn = (@context.accounts.account_for(from_email) ||
+             @context.accounts.default_account).signature
 
     if sigfn && File.exists?(sigfn)
       ["", "-- "] + File.readlines(sigfn).map { |l| l.chomp }

@@ -375,13 +375,20 @@ end
 #end
 
 class Array
-  #def to_h; Hash[*flatten]; end
+  def to_h; Hash[*flatten]; end
   #def rest; self[1..-1]; end
 
   def to_boolean_h; Hash[*map { |x| [x, true] }.flatten]; end
 
   #def last= e; self[-1] = e end
   #def nonempty?; !empty? end
+end
+
+class Hash
+  def - o # subtract keys
+    keyset = Set.new(o)
+    reject { |k, v| keyset.include?(k) }
+  end
 end
 
 class Time
