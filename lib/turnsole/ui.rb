@@ -25,6 +25,7 @@ class UI
 
   def stop!
     @input_thread.kill if @input_thread
+    @input_thread = nil
   end
 
   ## these methods are all globally-callable. go crazy
@@ -91,10 +92,12 @@ class UI
 
   def shell_out command
     Ncurses.endwin
+    stop!
     success = system command
     Ncurses.stdscr.keypad 1
     Ncurses.refresh
     Ncurses.curs_set 0
+    start!
     success
   end
 
@@ -161,22 +164,15 @@ private
   def start_input_thread!
     Thread.new do
       while true
-        begin
-          case(c = Ncurses.threadsafe_blocking_getch)
-          ## see comments in http://all-thing.net/ruby-ncurses-and-thread-blocking
-          ## for why these next two are possible outputs of threadsafe_blocking_getch
-          when nil
-            ## timeout -- don't think this actually happens
-          when 410
-            ## ncurses's way of telling us it's detected a refresh.  since we
-            ## have our own sigwinch handler, we get this AFTER we've already processed
-            ## the event, so we don't need to do anything.
-          else
-            enqueue :keypress, c
-          end
-        rescue Interrupt
-          raise "we don't seem to see this here. am i wrong?"
-          #enqueue :keypress, :interrupt
+        case(c = Ncurses.threadsafe_blocking_getch)
+        when nil
+          ## timeout -- don't think this actually happens
+        when 410
+          ## ncurses's way of telling us it's detected a refresh.  since we
+          ## have our own sigwinch handler, we get this AFTER we've already processed
+          ## the event, so we don't need to do anything.
+        else
+          enqueue :keypress, c
         end
       end
     end
