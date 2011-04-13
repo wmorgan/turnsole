@@ -219,7 +219,7 @@ EOS
   def reply type_arg=nil
     m = @message_lines[curpos] or return
     mode = ReplyMode.new m, type_arg
-    BufferManager.spawn "Reply to #{m.subj}", mode
+    @context.screen.spawn "Reply to #{m.subj}", mode
   end
 
   def reply_all; reply :all; end
@@ -227,18 +227,18 @@ EOS
   def subscribe_to_list
     m = @message_lines[curpos] or return
     if m.list_subscribe && m.list_subscribe =~ /<mailto:(.*?)(\?subject=(.*?))?>/
-      ComposeMode.spawn_nicely :from => AccountManager.account_for(m.recipient_email), :to => [Person.from_address($1)], :subj => ($3 || "subscribe")
+      ComposeMode.spawn_nicely :from => @context.accounts.account_for(m.recipient_email), :to => [Person.from_string($1)], :subj => ($3 || "subscribe")
     else
-      BufferManager.flash "Can't find List-Subscribe header for this message."
+      @context.screen.minibuf.flash "Can't find List-Subscribe header for this message."
     end
   end
 
   def unsubscribe_from_list
     m = @message_lines[curpos] or return
     if m.list_unsubscribe && m.list_unsubscribe =~ /<mailto:(.*?)(\?subject=(.*?))?>/
-      ComposeMode.spawn_nicely :from => AccountManager.account_for(m.recipient_email), :to => [Person.from_address($1)], :subj => ($3 || "unsubscribe")
+      ComposeMode.spawn_nicely :from => @context.accounts.account_for(m.recipient_email), :to => [Person.from_string($1)], :subj => ($3 || "unsubscribe")
     else
-      BufferManager.flash "Can't find List-Unsubscribe header for this message."
+      @context.screen.minibuf.flash "Can't find List-Unsubscribe header for this message."
     end
   end
 
