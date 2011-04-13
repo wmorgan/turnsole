@@ -224,15 +224,17 @@ class Input
     answer = ask_many_emails_with_completions domain, question, completions, default
 
     if answer
-      answer.split_on_commas.map { |x| Person.from_string(x) }#{ |x| ContactManager.contact_for(x) || Person.from_address(x) }
+      answer.split_on_commas.map { |x| Person.from_string(x) }#{ |x| ContactManager.contact_for(x) || Person.from_string(x) }
     end
   end
 
   def ask_for_account domain, question
-    completions = AccountManager.user_emails
-    answer = BufferManager.ask_many_emails_with_completions domain, question, completions, ""
-    answer = AccountManager.default_account.email if answer == ""
-    AccountManager.account_for Person.from_address(answer).email if answer
+    @context.input.asking do
+      completions = @context.accounts.accounts.map { |a| a.email_ready_address }
+      answer = @context.input.ask_many_emails_with_completions domain, question, completions, ""
+      answer = @context.accounts.default_account.email if answer == ""
+      @context.accounts.account_for Person.from_string(answer).email if answer
+    end
   end
 
   def ask_getch question, accept=nil
