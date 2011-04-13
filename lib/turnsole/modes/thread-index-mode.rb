@@ -109,7 +109,6 @@ EOS
   def reload
     @threads = []
     @text = []
-    @hidden_threads = Set.new
     @last_schedule_more_size = -1
     schedule_more buffer.content_height
     @buffer.mark_dirty!
@@ -223,7 +222,6 @@ EOS
     to_undo desc do
       threads.zip(old_labels).each { |thread, labels| thread.labels = labels }
       threads.each do |thread|
-        @hidden_threads.delete thread if opts[:hide]
         @context.client.set_labels! thread.thread_id, thread.labels # sync to server
         @context.ui.broadcast self, :thread, thread, :labels => thread.labels
         if is_relevant?(thread) == false
