@@ -1,5 +1,6 @@
 module Turnsole
 
+## a wrapper around the remote label stuff
 class Labels
   ## labels that have special semantics in heliotrope
   HELIOTROPE_SPECIAL_LABELS = Set.new %w(starred unread deleted attachment signed encrypted draft sent)

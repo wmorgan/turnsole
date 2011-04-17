@@ -57,6 +57,7 @@ class Input
       @question_inner_cont = nil
       val
     when :cont
+      raise "must be called within an #asking block" unless @question_outer_cont
       @question_inner_cont = val
       @question_outer_cont.call :return
       raise "never reached"
@@ -216,8 +217,8 @@ class Input
     default = default_contacts.is_a?(String) ? default_contacts : default_contacts.map { |s| s.to_s }.join(", ")
     default += " " unless default.empty?
 
-    recent = []#Index.load_contacts(AccountManager.user_emails, :num => 10).map { |c| [c.full_address, c.email] }
-    contacts = []#ContactManager.contacts.map { |c| [ContactManager.alias_for(c), c.full_address, c.email] }
+    recent = []#Index.load_contacts(AccountManager.user_emails, :num => 10).map { |c| [c.email_ready_address, c.email] }
+    contacts = []#ContactManager.contacts.map { |c| [ContactManager.alias_for(c), c.email_ready_address, c.email] }
 
     completions = (recent + contacts).flatten.uniq
     completions += @context.hooks.run("extra-contact-addresses") || []
