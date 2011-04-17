@@ -294,9 +294,9 @@ EOS
   def compose
     p = @person_lines[curpos]
     if p
-      ComposeMode.spawn_nicely :to_default => p
+      ComposeMode.spawn_nicely @context, :to_default => p.email_ready_address
     else
-      ComposeMode.spawn_nicely
+      ComposeMode.spawn_nicely @context
     end
   end
 
