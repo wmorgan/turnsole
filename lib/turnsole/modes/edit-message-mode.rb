@@ -6,8 +6,6 @@ require 'rmail'
 module Turnsole
 
 class EditMessageMode < LineCursorMode
-  DECORATION_LINES = 1
-
   FORCE_HEADERS = %w(From To Cc Bcc Subject)
   MULTI_HEADERS = %w(To Cc Bcc)
   NON_EDITABLE_HEADERS = %w(Message-id Date)
@@ -129,7 +127,9 @@ EOS
     regen_text!
   end
 
-  def num_lines; @text.length + (@selectors.empty? ? 0 : (@selectors.length + DECORATION_LINES)) end
+  ## if we have at least one horizontal selector, we'll add a space as well
+  def num_selector_lines; @selectors.empty? ? 0 : (@selectors.length + 1) end
+  def num_lines; @text.length + num_selector_lines end
 
   def [] i
     if @selectors.empty?
@@ -139,7 +139,7 @@ EOS
     elsif i == @selectors.length
       ""
     else
-      @text[i - @selectors.length - DECORATION_LINES]
+      @text[i - num_selector_lines]
     end
   end
 
@@ -147,13 +147,13 @@ EOS
   def handle_new_text header, body; end
 
   def edit_message_or_field
-    lines = DECORATION_LINES + @selectors.size
-    if lines > curpos
+    line = curpos - num_selector_lines
+    if line < 0 # no editing on these things
       return
-    elsif (curpos - lines) >= @header_lines.length
-      edit_message!
+    elsif line < @header_lines.length
+      edit_field @header_lines[line]
     else
-      edit_field @header_lines[curpos - lines]
+      edit_message!
     end
   end
 
@@ -172,20 +172,22 @@ EOS
 
     mtime = File.mtime @file.path
     @context.ui.shell_out "#{editor} #{@file.path}"
-    @edited = File.mtime(@file.path) > mtime
+    @edited ||= File.mtime(@file.path) > mtime
 
-    return @edited unless @edited
-
-    header, @body = parse_file @file.path
-    @header = header - NON_EDITABLE_HEADERS
-    handle_new_text @header, @body
-    update!
+    if @edited
+      header, @body = parse_file @file.path
+      @header = header - NON_EDITABLE_HEADERS
+      handle_new_text @header, @body
+      update!
+    end
 
     @edited
   end
 
   def killable?
-    !edited? || @context.input.ask_yes_or_no("Discard message?")
+    @context.input.asking do
+      !edited? || @context.input.ask_yes_or_no("Discard message?")
+    end
   end
 
   def unsaved?; edited? end
@@ -286,17 +288,19 @@ protected
     begin
       m = RMail::Parser.read(IO.read(fn))
       headers = m.header.to_a.to_h - NON_EDITABLE_HEADERS # bleargh!!
+      headers.map { |name, text| headers[name] = parse_header name, text }
       [headers, m.body.to_s.split("\n")]
     end
   end
 
   def parse_header k, v
-    if MULTI_HEADERS.include?(k)
-      v.split_on_commas.map do |name|
-        (p = ContactManager.contact_for(name)) && p.full_address || name
+    return v unless MULTI_HEADERS.include?(k)
+    v.split_on_commas.map do |name|
+      if(p = @context.contacts.contact_with_alias(name))
+        p.email_ready_address
+      else
+        name
       end
-    else
-      v
     end
   end
 
@@ -333,42 +337,31 @@ protected
   end
 
   def send_message
-    return false if !edited? && !BufferManager.ask_yes_or_no("Message unedited. Really send?")
-    return false if @context.config.confirm_no_attachments && mentions_attachments? && @attachments.size == 0 && !BufferManager.ask_yes_or_no("You haven't added any attachments. Really send?")#" stupid ruby-mode
-    return false if @context.config.confirm_top_posting && top_posting? && !BufferManager.ask_yes_or_no("You're top-posting. That makes you a bad person. Really send?") #" stupid ruby-mode
+    @context.input.asking do
+      return false if !edited? && !BufferManager.ask_yes_or_no("Message unedited. Really send?")
+      return false if @context.config.confirm_no_attachments && mentions_attachments? && @attachments.size == 0 && !BufferManager.ask_yes_or_no("You haven't added any attachments. Really send?")#" stupid ruby-mode
+      return false if @context.config.confirm_top_posting && top_posting? && !BufferManager.ask_yes_or_no("You're top-posting. That makes you a bad person. Really send?") #" stupid ruby-mode
 
-    from_email =
-      if @header["From"] =~ /<?(\S+@(\S+?))>?$/
-        $1
-      else
-        @context.accounts.default_account.email
+      from_email = if @header["From"] =~ /<?(\S+@(\S+?))>?$/
+          $1
+        else
+          @context.accounts.default_account.email
+        end
+
+      acct = @context.accounts.account_for(from_email) || @context.accounts.default_account
+
+      begin
+        m = build_message
+        say_id = @context.screen.minibuf.say "Sending message..."
+        @context.client.send_message(m) do
+          @context.screen.minibuf.clear say_id
+          @context.screen.minibuf.flash "Message sent!"
+          @context.screen.kill_buffer buffer
+        end
+      rescue CryptoManager::Error => e
+        warn "Problem sending mail: #{e.message}"
+        @context.screen.minibuf.flash "Problem sending mail: #{e.message}"
       end
-
-    acct = @context.accounts.account_for(from_email) || @context.accounts.default_account
-    BufferManager.flash "Sending..."
-
-    begin
-      date = Time.now
-      m = build_message date
-
-      if HookManager.enabled? "sendmail"
-    if not HookManager.run "sendmail", :message => m, :account => acct
-          warn "Sendmail hook was not successful"
-          return false
-    end
-      else
-        IO.popen(acct.sendmail, "w") { |p| p.puts m }
-        raise SendmailCommandFailed, "Couldn't execute #{acct.sendmail}" unless $? == 0
-      end
-
-      SentManager.write_sent_message(date, from_email) { |f| f.puts sanitize_body(m.to_s) }
-      BufferManager.kill_buffer buffer
-      BufferManager.flash "Message sent!"
-      true
-    rescue SystemCallError, SendmailCommandFailed, CryptoManager::Error => e
-      warn "Problem sending mail: #{e.message}"
-      BufferManager.flash "Problem sending mail: #{e.message}"
-      false
     end
   end
 
@@ -378,7 +371,7 @@ protected
     BufferManager.flash "Saved for later editing."
   end
 
-  def build_message date
+  def build_message
     m = RMail::Message.new
     m.header["Content-Type"] = "text/plain; charset=#{$encoding}"
     m.body = @body.join("\n")
@@ -421,7 +414,7 @@ protected
         end
     end
 
-    m.header["Date"] = date.rfc2822
+    m.header["Date"] = Time.now.rfc2822
     m.header["Message-Id"] = @message_id
     m.header["User-Agent"] = "Sup/#{Redwood::VERSION}"
     m.header["Content-Transfer-Encoding"] ||= '8bit'
@@ -459,25 +452,29 @@ protected
   def edit_field field
     case field
     when "Subject"
-      text = BufferManager.ask :subject, "Subject: ", @header[field]
-       if text
-         @header[field] = parse_header field, text
-         update!
-       end
+      @context.input.asking do
+        text = @context.input.ask :subject, "Subject: ", @header[field]
+        if text
+          @header[field] = parse_header field, text
+          update!
+        end
+      end
     else
       default = case field
-        when *MULTI_HEADERS
-          @header[field] ||= []
-          @header[field].join(", ")
-        else
-          @header[field]
-        end
+      when *MULTI_HEADERS
+        @header[field] ||= []
+        @header[field].join(", ")
+      else
+        @header[field]
+      end
 
-      contacts = BufferManager.ask_for_contacts :people, "#{field}: ", default
-      if contacts
-        text = contacts.map { |s| s.full_address }.join(", ")
-        @header[field] = parse_header field, text
-        update!
+      @context.input.asking do
+        contacts = @context.input.ask_for_contacts :people, "#{field}: ", default
+        if contacts
+          text = contacts.map { |s| s.email_ready_address }.join(", ")
+          @header[field] = parse_header field, text
+          update!
+        end
       end
     end
   end
