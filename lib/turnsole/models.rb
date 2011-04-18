@@ -84,15 +84,19 @@ class ThreadSummary
   def initialize hash
     @subject = hash["subject"]
     @participants = hash["participants"].map { |p| Person.from_string(p) }
+    @unread_participants = hash["unread_participants"].map { |p| Person.from_string(p) }
     @date = Time.at hash["date"]
     @size = hash["size"]
     @state = Set.new hash["state"]
     @labels = Set.new hash["labels"]
     @snippet = hash["snippet"]
     @thread_id = hash["thread_id"]
+
+    @direct_recipients = hash["direct_recipients"].map { |p| Person.from_string(p) }
+    @indirect_recipients = hash["indirect_recipients"].map { |p| Person.from_string(p) }
   end
 
-  attr_reader :subject, :participants, :date, :size, :snippet, :thread_id
+  attr_reader :subject, :participants, :unread_participants, :direct_recipients, :indirect_recipients, :date, :size, :snippet, :thread_id
   attr_accessor :labels, :state
 
   def has_state? s; @state.member?(s) end
@@ -136,9 +140,10 @@ class Message
     @parts = hash["parts"]
     @message_id = hash["message_id"]
     @state = Set.new hash["state"]
+    @recipient_email = hash["recipient_email"]
   end
 
-  attr_reader :subject, :from, :date, :to, :cc, :bcc, :thread_id, :message_id, :state, :parts
+  attr_reader :subject, :from, :date, :to, :cc, :bcc, :thread_id, :message_id, :state, :parts, :recipient_email
 
   def has_state? s; @state.member?(s) end
 

@@ -771,10 +771,8 @@ protected
       from << [(t.unread? ? :index_new : (t.starred? ? :index_starred : :index_old)), abbrev]
     end
 
-    dp = false # TODO get participants and newness
-    # dp = t.participants.any? { |p| @context.accounts.is_account? p }
-    p = false # TODO distinguish between direct and indirect participants
-    #p = dp || t.participants.any? { |p| AccountManager.is_account? p }
+    amdirect = t.direct_recipients.any? { |p| @context.accounts.is_account? p }
+    amindirect = t.indirect_recipients.any? { |p| @context.accounts.is_account? p }
 
     subj_color = if t.draft?; :index_draft
     elsif t.unread?; :index_new
@@ -800,7 +798,7 @@ protected
       [
       [subj_color, size_widget_text],
       [:to_me, t.attachment? ? "@" : " "],
-      [:to_me, dp ? ">" : (p ? '+' : " ")],
+      [:to_me, amdirect ? ">" : (amindirect ? '+' : " ")],
     ] +
       labels.sort.map { |label| [:label, "#{label} "] } +
       [
