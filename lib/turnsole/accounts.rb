@@ -43,7 +43,7 @@ class Accounts
       @default_account = a
     end
 
-    ([hash[:email]] + hash[:alternates]).each { |email| @by_email[email] ||= a }
+    ([a.email] + hash[:alternates]).each { |email| @by_email[email] ||= a }
     hash[:regexen].each { |re| @by_regex[Regexp.new(re)] = a }
   end
 
