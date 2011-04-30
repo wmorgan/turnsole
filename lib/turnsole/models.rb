@@ -11,6 +11,9 @@ class Person
     @handle = handle
   end
 
+  def hash; @email.hash end
+  def eql? o; o.email == @email end
+
   attr_reader :name, :email, :handle
 
   def shortname
