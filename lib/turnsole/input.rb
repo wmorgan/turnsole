@@ -190,7 +190,7 @@ class Input
     @context.labels.load!
 
     default_labels -= @context.labels.reserved_labels
-    default = default_labels.sort.map { |x| x + " " }.join
+    default = default_labels.sort.join " "
 
     forbidden_labels = Set.new forbidden_labels
     autocomplete_labels = (@context.labels.user_mutable_labels - forbidden_labels).sort
