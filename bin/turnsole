@@ -4,6 +4,8 @@ require 'rubygems'
 require 'trollop'
 require "turnsole"
 
+HELIOTROPE_SUPPORTED_INDEX_VERSION = 2
+
 TURNSOLE_BIN_VERSION = "git" # change me on deploy
 unless Turnsole::VERSION == TURNSOLE_BIN_VERSION
   $stderr.puts <<EOS
@@ -73,12 +75,23 @@ end
 log.info "running under #{RUBY_DESCRIPTION}"
 
 turnsole.setup! opts.heliotrope_url
-begin
-  turnsole.client.ping!
-  log.debug "server is up"
+server_error = begin
+  info = turnsole.client.server_info
+  if info["status"] != "up"
+    "server is not up. It reports that it is #{info["status"].inspect}."
+  elsif info["index_version"] != HELIOTROPE_SUPPORTED_INDEX_VERSION
+    "server reports index version #{info["index_version"].inspect}. I expect #{HELIOTROPE_SUPPORTED_INDEX_VERSION}. You probably need to upgrade."
+  else
+    log.debug "server is up"
+    nil
+  end
 rescue HeliotropeClient::Error => e
-  $stderr.puts "Error: can't connect to server at #{turnsole.client.url}. Please check that it is up."
-  $stderr.puts "Error was: #{e.message}"
+  "can't connect to server at #{turnsole.client.url}: #{e.message}."
+end
+
+if server_error
+  $stderr.puts "Error: #{server_error}"
+  $stderr.puts "Can't start turnsole."
   abort
 end
 

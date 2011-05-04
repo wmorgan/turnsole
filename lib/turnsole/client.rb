@@ -25,9 +25,8 @@ class Client
     @thread.kill if @thread
   end
 
-  ## the one method in here that is synchronous---returns true if the
-  ## server can be reached; false otherwise
-  def ping!; @client_mutex.synchronize { @client.ping } end
+  ## the one method in here that is synchronous---good for pinging.
+  def server_info; @client_mutex.synchronize { @client.info } end
 
   ## returns an array of ThreadSummary objects
   def search query, num, offset, &callback
