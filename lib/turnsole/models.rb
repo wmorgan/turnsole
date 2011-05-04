@@ -87,7 +87,8 @@ class ThreadSummary
   def initialize hash
     @subject = hash["subject"]
     @participants = hash["participants"].map { |p| Person.from_string(p) }
-    @unread_participants = hash["unread_participants"].map { |p| Person.from_string(p) }
+    @unread_participants = Set.new hash["unread_participants"].map { |p| Person.from_string(p) }
+
     @date = Time.at hash["date"]
     @size = hash["size"]
     @state = Set.new hash["state"]
@@ -95,8 +96,8 @@ class ThreadSummary
     @snippet = hash["snippet"]
     @thread_id = hash["thread_id"]
 
-    @direct_recipients = hash["direct_recipients"].map { |p| Person.from_string(p) }
-    @indirect_recipients = hash["indirect_recipients"].map { |p| Person.from_string(p) }
+    @direct_recipients = Set.new hash["direct_recipients"].map { |p| Person.from_string(p) }
+    @indirect_recipients = Set.new hash["indirect_recipients"].map { |p| Person.from_string(p) }
   end
 
   attr_reader :subject, :participants, :unread_participants, :direct_recipients, :indirect_recipients, :date, :size, :snippet, :thread_id

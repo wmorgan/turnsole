@@ -188,20 +188,21 @@ EOS
     end
   end
 
-  def handle_thread_update sender, updated_thread, what
-    t, index = @threads.find_with_index { |x| x.thread_id == updated_thread.thread_id }
+  def handle_thread_update sender, new_thread
+    old_thread, index = @threads.find_with_index { |x| x.thread_id == new_thread.thread_id }
 
-    if t # we have this thread currently
-      if is_relevant?(t) == false # BUT it is no longer relevant
+    if old_thread # we have this thread currently
+      if is_relevant?(old_thread) == false # BUT it is no longer relevant
         @threads.delete_at index
         regen_text!
-      else # we will keep the thread and just update the display
-        l = @lines[t]
-        what.each { |field, v| t.send("#{field}=", v) }
-        update_text_for_line! l
+      else # we will keep the thread and just update the thread from the server
+        @threads[index] = new_thread
+        @lines.delete old_thread
+        @lines[new_thread] = index
+        update_text_for_line! index
       end
-    elsif is_relevant?(updated_thread) # we don't have it, and we need to add it
-      @threads << updated_thread
+    elsif is_relevant?(new_thread) # we don't have it, and we need to add it
+      @threads << new_thread
       sort_threads!
       regen_text! # rebuild everybody!
     end
@@ -746,12 +747,9 @@ protected
       break if remaining_width <= 0
 
       last = i == t.participants.length - 1
-      name = if @context.accounts.is_account? p
-        "me"
-      elsif t.participants.size == 1
-        p.mediumname
-      else
-        p.shortname
+      name = if @context.accounts.is_account?(p); "me"
+        elsif t.participants.size == 1; p.mediumname
+        else p.shortname
       end
 
       new_width = name.display_width
@@ -768,7 +766,7 @@ protected
 
       abbrev += (" " * remaining_width) if last && remaining_width > 0
 
-      from << [(t.unread? ? :index_new : (t.starred? ? :index_starred : :index_old)), abbrev]
+      from << [(t.unread_participants.member?(p) ? :index_new : (t.starred? ? :index_starred : :index_old)), abbrev]
     end
 
     amdirect = t.direct_recipients.any? { |p| @context.accounts.is_account? p }
