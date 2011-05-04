@@ -127,9 +127,9 @@ EOS
   ## - @chunk_lines: a map from row #s to Chunk objects
   ## - @person_lines: a map from row #s to Person objects
 
-  def initialize context, thread_summary, parent_mode
+  def initialize context, threadinfo, parent_mode
     super(context)
-    @thread_summary = thread_summary
+    @threadinfo = threadinfo
     @context = context
 
     ## loaded later from the server
@@ -162,7 +162,7 @@ EOS
   def [] i; @text[i] end
 
   def load!
-    @context.client.load_thread(@thread_summary.thread_id) { |thread| receive_thread thread }
+    @context.client.load_thread(@threadinfo.thread_id) { |thread| receive_thread thread }
   end
 
   def cleanup!
@@ -171,13 +171,12 @@ EOS
       @context.client.set_state! v.message_id, (v.state - ["unread"])
       @context.ui.broadcast self, :message_state, v.message_id
     end
-    ## reload the thread state. we're guaranteed this happens *after* the
-    ## message states are updated above because client calls are queued. if we
-    ## start multiplexing those, we might have to be more sophisticated about
-    ## this.
-    @context.client.thread_state(@thread_summary.thread_id) do |state|
+    ## reload the thread. we're guaranteed this happens *after* the message
+    ## states are updated above because client calls are queued. if we start
+    ## multiplexing those, we might have to be more sophisticated about this.
+    @context.client.threadinfo(@threadinfo.thread_id) do |threadinfo|
       ## and send it out to everyone
-      @context.ui.broadcast self, :thread, @thread_summary, :state => state
+      @context.ui.broadcast self, :thread, threadinfo
     end
   end
 

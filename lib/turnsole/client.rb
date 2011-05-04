@@ -33,6 +33,10 @@ class Client
     perform :search, :args => [query, num, offset], :callback => lambda { |threads| callback.call threads.map { |t| ThreadSummary.new(t) } }
   end
 
+  def threadinfo thread_id, &callback
+    perform :threadinfo, :args => [thread_id], :callback => lambda { |r| callback.call ThreadSummary.new(r) }
+  end
+
   ## returns an array of [MessageSummary, depth] pairs
   def load_thread thread_id, &callback
     perform :thread, :args => [thread_id], :callback => lambda { |results| callback.call results.map { |m, depth| [MessageSummary.new(m), depth] } }
@@ -44,10 +48,6 @@ class Client
 
   def load_part message_id, part_id, &callback
     perform :message_part, :args => [message_id, part_id], :callback => lambda { |result| callback.call result }
-  end
-
-  def thread_labels thread_id, &callback
-    perform :thread_labels, :args => [thread_id], :callback => lambda { |result| callback.call Set.new(result) }
   end
 
   def thread_state thread_id, &callback
