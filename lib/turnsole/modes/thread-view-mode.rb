@@ -227,19 +227,21 @@ EOS
 
   def subscribe_to_list
     m = @message_lines[curpos] or return
-    if m.list_subscribe && m.list_subscribe =~ /<mailto:(.*?)(\?subject=(.*?))?>/
-      ComposeMode.spawn_nicely :from => @context.accounts.account_for(m.recipient_email), :to => [Person.from_string($1)], :subj => ($3 || "subscribe")
+    m = @messages[m.message_id] or return
+    if (m.list_subscribe || "") =~ /<mailto:(.*?)(\?subject=(.*?))?>/
+      ComposeMode.spawn_nicely @context, :from => @context.accounts.account_for(m.recipient_email), :cc => [], :bcc => [], :to => [Person.from_string($1)], :subj => ($3 || "subscribe")
     else
-      @context.screen.minibuf.flash "Can't find List-Subscribe header for this message."
+      @context.screen.minibuf.flash "Couldn't find a List-Subscribe header for this message."
     end
   end
 
   def unsubscribe_from_list
     m = @message_lines[curpos] or return
-    if m.list_unsubscribe && m.list_unsubscribe =~ /<mailto:(.*?)(\?subject=(.*?))?>/
-      ComposeMode.spawn_nicely :from => @context.accounts.account_for(m.recipient_email), :to => [Person.from_string($1)], :subj => ($3 || "unsubscribe")
+    m = @messages[m.message_id] or return
+    if (m.list_unsubscribe || "") =~ /<mailto:(.*?)(\?subject=(.*?))?>/
+      ComposeMode.spawn_nicely @context, :from => @context.accounts.account_for(m.recipient_email), :cc => [], :bcc => [], :to => [Person.from_string($1)], :subj => ($3 || "unsubscribe")
     else
-      @context.screen.minibuf.flash "Can't find List-Unsubscribe header for this message."
+      @context.screen.minibuf.flash "Couldn't find a List-Unsubscribe header for this message."
     end
   end
 
