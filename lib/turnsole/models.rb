@@ -147,7 +147,11 @@ class Message
     @recipient_email = hash["recipient_email"]
   end
 
-  attr_reader :subject, :from, :date, :to, :cc, :bcc, :thread_id, :message_id, :state, :parts, :recipient_email
+  def parse! context
+    @chunks = ChunkParser.new(context).chunks_for self
+  end
+
+  attr_reader :subject, :from, :date, :to, :cc, :bcc, :thread_id, :message_id, :state, :parts, :recipient_email, :chunks
 
   def has_state? s; @state.member?(s) end
 

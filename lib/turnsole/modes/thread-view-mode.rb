@@ -135,9 +135,6 @@ EOS
     ## loaded later from the server
     @thread = nil
     @messages = {}
-    @message_chunks = {}
-
-    @chunk_parser = ChunkParser.new @context
 
     ## used for dispatch-and-next
     @parent_mode = parent_mode
@@ -216,9 +213,14 @@ EOS
   end
 
   def reply type_arg=nil
-    m = @message_lines[curpos] or return
-    mode = ReplyMode.new m, type_arg
-    @context.screen.spawn "Reply to #{m.subj}", mode
+    messageinfo = @message_lines[curpos] or return
+    message = @messages[messageinfo.message_id]
+    if message
+      mode = ReplyMode.new @context, message, type_arg
+      @context.screen.spawn "Reply to #{message.subj}", mode
+    else
+      @context.screen.minibuf.flash "Message not loaded yet!"
+    end
   end
 
   def reply_all; reply :all; end
@@ -579,7 +581,7 @@ EOS
 
   def expand_all_quotes
     if(m = @message_lines[curpos])
-      quotes = @message_chunks[m.message_id].select { |c| (c.is_a?(Chunk::Quote) || c.is_a?(Chunk::Signature)) && c.lines.length > 1 }
+      quotes = @messages[m.message_id].chunks.select { |c| (c.is_a?(Chunk::Quote) || c.is_a?(Chunk::Signature)) && c.lines.length > 1 }
       numopen = quotes.inject(0) { |s, c| s + (@chunk_layouts[c].state == :open ? 1 : 0) }
       newstate = numopen > quotes.length / 2 ? :closed : :open
       quotes.each { |c| @chunk_layouts[c].state = newstate }
@@ -723,14 +725,9 @@ private
     return unless buffer # die unless i'm still actually being displayed
 
     @messages[message.message_id] = message
-    setup_chunks! message
+    message.parse! @context
+    message.chunks.each { |c| @chunk_layouts[c] = ChunkLayout.new c }
     regen_text!
-  end
-
-  ## once we have the actual content of the message
-  def setup_chunks! message
-    chunks = @message_chunks[message.message_id] = @chunk_parser.chunks_for(message)
-    chunks.each { |c| @chunk_layouts[c] = ChunkLayout.new c }
   end
 
   def init_message_layout!
@@ -789,7 +786,8 @@ private
       prevm = message
 
       if layout.state != :closed
-        chunks = @message_chunks[message.message_id] || [] # no chunks if we haven't loaded it yet
+        actual_message = @messages[message.message_id]
+        chunks = (actual_message ? actual_message.chunks : []) # no chunks if we haven't loaded it yet
         chunks.each do |chunk|
           layout = @chunk_layouts[chunk]
 
