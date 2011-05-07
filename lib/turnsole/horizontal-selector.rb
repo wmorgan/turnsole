@@ -1,0 +1,47 @@
+module Turnsole
+
+class HorizontalSelector
+  attr_accessor :label
+
+  def initialize label, vals, labels, base_color=:horizontal_selector_unselected, selected_color=:horizontal_selector_selected
+    @label = label
+    @vals = vals
+    @labels = labels
+    @base_color = base_color
+    @selected_color = selected_color
+    @selection = 0
+  end
+
+  def set_to val; @selection = @vals.index(val) end
+
+  def val; @vals[@selection] end
+
+  def line width=nil
+    label =
+      if width
+        sprintf "%#{width}s ", @label
+      else
+        "#{@label} "
+      end
+
+    [[@base_color, label]] +
+      (0 ... @labels.length).inject([]) do |array, i|
+        array + [
+          if i == @selection
+            [@selected_color, @labels[i]]
+          else
+            [@base_color, @labels[i]]
+          end] + [[@base_color, "  "]]
+      end + [[@base_color, ""]]
+  end
+
+  def roll_left
+    @selection = (@selection - 1) % @labels.length
+  end
+
+  def roll_right
+    @selection = (@selection + 1) % @labels.length
+  end
+end
+
+end

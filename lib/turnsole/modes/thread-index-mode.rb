@@ -635,8 +635,8 @@ EOS
     m = t.latest_message
     return if m.nil? # probably won't happen
     m.load_from_source!
-    mode = ReplyMode.new m, type_arg
-    BufferManager.spawn "Reply to #{m.subj}", mode
+    mode = ReplyMode.new @context, m, type_arg
+    @context.screen.spawn "Reply to #{m.subj}", mode
   end
 
   def reply_all; reply :all; end

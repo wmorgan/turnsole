@@ -54,18 +54,6 @@ Return value:
      none
 EOS
 
-  HookManager.register "sendmail", <<EOS
-Sends the given mail. If this hook doesn't exist, the sendmail command
-configured for the account is used.
-The message will be saved after this hook is run, so any modification to it
-will be recorded.
-Variables:
-    message: RMail::Message instance of the mail to send
-    account: Account instance matching the From address
-Return value:
-     True if mail has been sent successfully, false otherwise.
-EOS
-
   attr_reader :status
   attr_accessor :body, :header
   bool_reader :edited
@@ -245,7 +233,7 @@ protected
   def move_cursor_left
     if curpos < @selectors.length
       @selectors[curpos].roll_left
-      buffer.mark_dirty
+      buffer.mark_dirty!
     else
       col_left
     end
@@ -254,7 +242,7 @@ protected
   def move_cursor_right
     if curpos < @selectors.length
       @selectors[curpos].roll_right
-      buffer.mark_dirty
+      buffer.mark_dirty!
     else
       col_right
     end
@@ -338,29 +326,31 @@ protected
 
   def send_message
     @context.input.asking do
-      return false if !edited? && !BufferManager.ask_yes_or_no("Message unedited. Really send?")
-      return false if @context.config.confirm_no_attachments && mentions_attachments? && @attachments.size == 0 && !BufferManager.ask_yes_or_no("You haven't added any attachments. Really send?")#" stupid ruby-mode
-      return false if @context.config.confirm_top_posting && top_posting? && !BufferManager.ask_yes_or_no("You're top-posting. That makes you a bad person. Really send?") #" stupid ruby-mode
+      return false if !edited? && !@context.input.ask_yes_or_no("Message unedited. Really send?")
+      return false if @context.config.confirm_no_attachments && mentions_attachments? && @attachments.size == 0 && !@context.input.ask_yes_or_no("You haven't added any attachments. Really send?")
+      return false if @context.config.confirm_top_posting && top_posting? && !@context.input.ask_yes_or_no("You're top-posting. That makes you a bad person. Really send?")
 
       from_email = if @header["From"] =~ /<?(\S+@(\S+?))>?$/
-          $1
-        else
-          @context.accounts.default_account.email
-        end
+        $1
+      else
+        @context.accounts.default_account.email
+      end
 
       acct = @context.accounts.account_for(from_email) || @context.accounts.default_account
 
       begin
         m = build_message
-        say_id = @context.screen.minibuf.say "Sending message..."
-        @context.client.send_message(m) do
-          @context.screen.minibuf.clear say_id
-          @context.screen.minibuf.flash "Message sent!"
-          @context.screen.kill_buffer buffer
-        end
-      rescue CryptoManager::Error => e
+      rescue Crypto::Error => e
         warn "Problem sending mail: #{e.message}"
         @context.screen.minibuf.flash "Problem sending mail: #{e.message}"
+        return
+      end
+
+      say_id = @context.screen.minibuf.say "Sending message..."
+      @context.client.send_message(m) do
+        @context.screen.minibuf.clear say_id
+        @context.screen.minibuf.flash "Message sent!"
+        @context.screen.kill_buffer buffer
       end
     end
   end
@@ -375,7 +365,7 @@ protected
     m = RMail::Message.new
     m.header["Content-Type"] = "text/plain; charset=#{$encoding}"
     m.body = @body.join("\n")
-    m.body += sig_lines.join("\n") unless $config[:edit_signature]
+    m.body += sig_lines.join("\n") unless @context.config.edit_signature
     ## body must end in a newline or GPG signatures will be WRONG!
     m.body += "\n" unless m.body =~ /\n\Z/
 
@@ -399,7 +389,7 @@ protected
         m = transfer_encode m
       end
 
-      m = CryptoManager.send @crypto_selector.val, from_email, to_email, m
+      m = @context.crypto.send @crypto_selector.val, from_email, to_email, m
     end
 
     ## finally, set the top-level headers
@@ -416,7 +406,7 @@ protected
 
     m.header["Date"] = Time.now.rfc2822
     m.header["Message-Id"] = @message_id
-    m.header["User-Agent"] = "Sup/#{Redwood::VERSION}"
+    m.header["User-Agent"] = "Turnsole v.#{VERSION}"
     m.header["Content-Transfer-Encoding"] ||= '8bit'
     m.header["MIME-Version"] = "1.0" if m.multipart?
     m
@@ -444,7 +434,7 @@ EOS
 
     f.puts
     f.puts sanitize_body(@body.join("\n"))
-    f.puts sig_lines if full unless $config[:edit_signature]
+    f.puts sig_lines if full unless @context.config.edit_signature
   end
 
 protected

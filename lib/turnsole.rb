@@ -34,6 +34,7 @@ require "turnsole/labels"
 require "turnsole/undo"
 require "turnsole/crypto"
 require "turnsole/contacts"
+require "turnsole/horizontal-selector"
 
 require "turnsole/modes/scroll-mode"
 require "turnsole/modes/text-mode"
@@ -49,6 +50,7 @@ require "turnsole/modes/completion-mode"
 require "turnsole/modes/label-list-mode"
 require "turnsole/modes/edit-message-mode"
 require "turnsole/modes/compose-mode"
+require "turnsole/modes/reply-mode"
 
 module Turnsole
   VERSION = "git"

@@ -217,7 +217,7 @@ EOS
     message = @messages[messageinfo.message_id]
     if message
       mode = ReplyMode.new @context, message, type_arg
-      @context.screen.spawn "Reply to #{message.subj}", mode
+      @context.screen.spawn "Reply to #{message.subject}", mode
     else
       @context.screen.minibuf.flash "Message not loaded yet!"
     end
@@ -436,14 +436,14 @@ EOS
   end
 
   def edit_draft
-    m = @message_lines[curpos] or return
-    if m.is_draft?
-      mode = ResumeMode.new m
-      BufferManager.spawn "Edit message", mode
-      BufferManager.kill_buffer self.buffer
+    message_summary = @message_lines[curpos] or return
+    if message_summary.draft?
+      mode = ResumeMode.new message
+      @context.screen.spawn "Edit message", mode
+      @context.screen.kill_buffer buffer
       mode.edit_message
     else
-      BufferManager.flash "Not a draft message!"
+      @context.screen.minibuf.flash "Not a draft message!"
     end
   end
 
