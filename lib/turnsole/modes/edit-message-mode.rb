@@ -346,9 +346,8 @@ protected
         return
       end
 
-      say_id = @context.screen.minibuf.say "Sending message..."
+      @context.screen.minibuf.flash "Sending message..."
       @context.client.send_message(m) do
-        @context.screen.minibuf.clear say_id
         @context.screen.minibuf.flash "Message sent!"
         @context.screen.kill_buffer buffer
       end
@@ -363,7 +362,6 @@ protected
 
   def build_message
     m = RMail::Message.new
-    m.header["Content-Type"] = "text/plain; charset=#{$encoding}"
     m.body = @body.join("\n")
     m.body += sig_lines.join("\n") unless @context.config.edit_signature
     ## body must end in a newline or GPG signatures will be WRONG!
@@ -406,7 +404,8 @@ protected
 
     m.header["Date"] = Time.now.rfc2822
     m.header["Message-Id"] = @message_id
-    m.header["User-Agent"] = "Turnsole v.#{VERSION}"
+    m.header["User-Agent"] = "turnsole, a heliotrope client v.#{VERSION}"
+    m.header["Content-Type"] = "text/plain; charset=#{@context.encoding}"
     m.header["Content-Transfer-Encoding"] ||= '8bit'
     m.header["MIME-Version"] = "1.0" if m.multipart?
     m
