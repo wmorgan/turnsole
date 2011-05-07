@@ -144,6 +144,8 @@ class Message
     @parts = hash["parts"]
     @message_id = hash["message_id"]
     @state = Set.new hash["state"]
+    @refs = hash["refs"]
+    @email_message_id = hash["email_message_id"]
 
     @recipient_email = hash["recipient_email"]
     @list_post = hash["list_post"]
@@ -155,7 +157,7 @@ class Message
     @chunks = ChunkParser.new(context).chunks_for self
   end
 
-  attr_reader :subject, :from, :date, :to, :cc, :bcc, :thread_id, :message_id, :state, :parts, :recipient_email, :list_post, :list_unsubscribe, :list_subscribe, :chunks
+  attr_reader :subject, :from, :date, :to, :cc, :bcc, :thread_id, :message_id, :state, :parts, :recipient_email, :list_post, :list_unsubscribe, :list_subscribe, :chunks, :refs, :email_message_id
 
   def has_state? s; @state.member?(s) end
 
