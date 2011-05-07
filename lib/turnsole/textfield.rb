@@ -108,8 +108,8 @@ class TextField
     @completion_state = nil
 
     case c
-    when Ncurses::KEY_LEFT; @curpos = [0, @curpos - 1].max
-    when Ncurses::KEY_RIGHT; @curpos = [@curpos + 1, @answer.length].min
+    when Ncurses::KEY_LEFT, ?\C-b.ord; @curpos = [0, @curpos - 1].max
+    when Ncurses::KEY_RIGHT, ?\C-f.ord; @curpos = [@curpos + 1, @answer.length].min
     when Ncurses::KEY_DC, ?\C-d.ord; @answer = @answer[0 ... @curpos] + (@answer[(@curpos + 1) .. -1] || "")
     when Ncurses::KEY_BACKSPACE, 127
       if @curpos > 0
