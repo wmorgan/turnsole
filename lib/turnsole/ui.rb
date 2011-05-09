@@ -73,7 +73,7 @@ class UI
       action = @context.input.handle key
     when :server_results
       results, callback = args
-      callback.call(results) if callback
+      callback.call(*results) if callback
     when :broadcast
       source, event, *args = args
       method = "handle_#{event}_update"
