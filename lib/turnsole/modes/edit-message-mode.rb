@@ -346,11 +346,14 @@ protected
         return
       end
 
-      @context.screen.minibuf.flash "Sending message..."
-      @context.client.send_message(m) do
-        @context.screen.minibuf.flash "Message sent!"
-        @context.screen.kill_buffer buffer
-      end
+      say_id = @context.screen.minibuf.say "Sending message..."
+      @context.client.send_message(m,
+        :callback => lambda do |results|
+          @context.screen.minibuf.flash "Message sent!"
+          @context.screen.kill_buffer buffer
+        end,
+        :ensure => lambda { @context.screen.minibuf.clear say_id }
+        )
     end
   end
 
