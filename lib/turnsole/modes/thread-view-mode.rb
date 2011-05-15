@@ -694,8 +694,10 @@ EOS
 
     return unless chunk || message
 
+    question = "Pipe #{chunk ? "attachment" : "raw message"} to command: "
+
     @context.input.asking do
-      command = @context.input.ask :shell, "pipe command: "
+      command = @context.input.ask :shell, question
       return if command.nil? || command.empty?
 
       if chunk
@@ -706,25 +708,30 @@ EOS
     end
   end
 
+  ## download the raw message, then pipe it
   def pipe_message message, command
     @context.client.raw_message(message.message_id) do |rawbody|
       output = @context.ui.pipe_to_process(command) do |stream|
-        stream.print rawbody
+        stream.write rawbody
       end
       handle_pipe_output command, output
     end
   end
 
+  ## pipe the chunk (we already have the content)
   def pipe_chunk chunk, command
-    output = @context.ui.pipe_to_process(command) do |stream|
-      stream.print chunk.raw_content
-    end
+    chunk.with_content do |content|
+      output = @context.ui.pipe_to_process(command) do |stream|
+        stream.write content
+      end
 
-    handle_pipe_output command, output
+      handle_pipe_output command, output
+    end
   end
 
   def handle_pipe_output command, output
     if output
+      output = output.force_to_ascii
       @context.screen.spawn "Output of '#{command}'", TextMode.new(@context, output.force_to_ascii)
     else
       @context.screen.minibuf.flash "'#{command}' done!"
