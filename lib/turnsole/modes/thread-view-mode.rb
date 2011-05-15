@@ -87,7 +87,7 @@ EOS
     k.add :compose, "Compose message to person", 'm'
     k.add :subscribe_to_list, "Subscribe to/unsubscribe from mailing list", "("
     k.add :unsubscribe_from_list, "Subscribe to/unsubscribe from mailing list", ")"
-    k.add :pipe_message, "Pipe message or attachment to a shell command", '|'
+    k.add :pipe_message_or_attachment, "Pipe message or attachment to a shell command", '|'
 
     k.add :archive_and_next, "Archive this thread, kill buffer, and view next", 'a'
     k.add :delete_and_next, "Delete this thread, kill buffer, and view next", 'd'
@@ -682,28 +682,52 @@ EOS
   end
   private :dispatch
 
-  def pipe_message
+  def pipe_message_or_attachment
     chunk = @chunk_lines[curpos]
-    chunk = nil unless chunk.is_a?(Chunk::Attachment)
-    message = @message_lines[curpos] unless chunk
+    message = @message_lines[curpos]
+
+    ## if the cursor isn't on an attachment, use the whole message
+    if chunk.nil? || !chunk.is_a?(Chunk::Attachment)
+      chunk = nil
+      message = @messages[message.message_id]
+    end
 
     return unless chunk || message
 
-    command = BufferManager.ask(:shell, "pipe command: ")
-    return if command.nil? || command.empty?
+    @context.input.asking do
+      command = @context.input.ask :shell, "pipe command: "
+      return if command.nil? || command.empty?
 
-    output = pipe_to_process(command) do |stream|
       if chunk
-        stream.print chunk.raw_content
+        pipe_chunk chunk, command
       else
-        message.each_raw_message_line { |l| stream.print l }
+        pipe_message message, command
       end
     end
+  end
 
+  def pipe_message message, command
+    @context.client.raw_message(message.message_id) do |rawbody|
+      output = @context.ui.pipe_to_process(command) do |stream|
+        stream.print rawbody
+      end
+      handle_pipe_output command, output
+    end
+  end
+
+  def pipe_chunk chunk, command
+    output = @context.ui.pipe_to_process(command) do |stream|
+      stream.print chunk.raw_content
+    end
+
+    handle_pipe_output command, output
+  end
+
+  def handle_pipe_output command, output
     if output
-      BufferManager.spawn "Output of '#{command}'", TextMode.new(output.force_to_ascii)
+      @context.screen.spawn "Output of '#{command}'", TextMode.new(@context, output.force_to_ascii)
     else
-      BufferManager.flash "'#{command}' done!"
+      @context.screen.minibuf.flash "'#{command}' done!"
     end
   end
 

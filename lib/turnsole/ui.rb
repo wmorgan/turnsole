@@ -119,44 +119,42 @@ class UI
   end
 
   def pipe_to_process command
-    begin
-      Open3.popen3(command) do |input, output, error|
-        err, data, * = IO.select [error], [input], nil
+    Open3.popen3(command) do |input, output, error|
+      err, data, * = IO.select [error], [input], nil
 
-        unless err.empty?
-          message = err.first.read
-          if message =~ /^\s*$/
-            warn "error running #{command} (but no error message)"
-            @context.screen.minibuf.flash "Error running #{command}!"
-          else
-            warn "error running #{command}: #{message}"
-            @context.screen.minibuf.flash "Error: #{message}"
-          end
-          return
-        end
-
-        data = data.first
-        data.sync = false # buffer input
-
-        yield data
-        data.close # output will block unless input is closed
-
-        ## BUG?: shows errors or output but not both....
-        data, * = IO.select [output, error], nil, nil
-        data = data.first
-
-        if data.eof
-          @context.screen.minibuf.flash "'#{command}' done!"
-          nil
+      unless err.empty?
+        message = err.first.read
+        if message =~ /^\s*$/
+          warn "error running #{command} (but no error message)"
+          @context.screen.minibuf.flash "Error running #{command}!"
         else
-          data.read
+          warn "error running #{command}: #{message}"
+          @context.screen.minibuf.flash "Error: #{message}"
         end
+        return
       end
-    rescue SystemCallError => e
-      warn "error running #{command}: #{e.message}"
-      @context.screen.minibuf.flash "Error: #{e.message}"
-      nil
+
+      data = data.first
+      data.sync = false # buffer input
+
+      yield data
+      data.close # output will block unless input is closed
+
+      ## BUG?: shows errors or output but not both....
+      data, * = IO.select [output, error], nil, nil
+      data = data.first
+
+      if data.eof
+        @context.screen.minibuf.flash "'#{command}' done!"
+        nil
+      else
+        data.read
+      end
     end
+  rescue SystemCallError => e
+    warn "error running #{command}: #{e.message}"
+    @context.screen.minibuf.flash "Error: #{e.message}"
+    nil
   end
 
 private
