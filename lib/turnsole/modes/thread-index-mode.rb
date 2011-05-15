@@ -573,7 +573,7 @@ EOS
     regen_text
   end
 
-  def apply_to_tagged; @tags.apply_to_tagged; end
+  def apply_to_tagged; @tags.apply_to_tagged end
 
   def edit_labels
     thread = cursor_thread or return

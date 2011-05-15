@@ -77,23 +77,23 @@ class Input
 
     if focus_mode.in_search? && input_char != CONTINUE_IN_BUFFER_SEARCH_KEY.ord
       focus_mode.cancel_search!
-    end
-
-    klass = focus_mode.class
-    action = nil
-    until klass == Object
-      action = resolve_input_with_keymap input_char, klass.keymap
-      break if action
-      klass = klass.superclass
-    end
-
-    if action
+    elsif(action = resolve_input_on_mode focus_mode, input_char)
       focus_mode.send action
     elsif(action = resolve_input_with_keymap(input_char, @context.global.keymap))
       @context.global.do action
     else
       @context.screen.minibuf.flash "Unknown command '#{input_char.chr}' for #{focus_mode.name}!"
     end
+  end
+
+  def resolve_input_on_mode mode, input_char
+    klass = mode.class
+    until klass == Object
+      action = resolve_input_with_keymap input_char, klass.keymap
+      return action if action
+      klass = klass.superclass
+    end
+    nil
   end
 
   def ask domain, question, default=nil, opts={}, &block
