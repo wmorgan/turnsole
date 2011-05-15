@@ -253,18 +253,24 @@ class String
   def force_to_ascii
     out = ""
     each_byte do |b|
-      if (b & 128) != 0
-        out << "\\x#{b.to_s 16}"
+      out << if (b < 128) && (b > 31)
+        b.chr
       else
-        out << b.chr
+        case b.chr
+        when "\n", "\r"
+          b
+        when "\t"
+          "     "
+        else
+          "\\x#{b.to_s 16}"
+        end
       end
     end
-    safely_mark_ascii
+    out.safely_mark_ascii
   end
 
   def ascii_only?
-    size.times { |i| return false if self[i] & 128 != 0 }
-    return true
+    each_byte.all? { |b| b & 128 == 0 }
   end unless method_defined? :ascii_only?
 end
 
