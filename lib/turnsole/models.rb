@@ -134,6 +134,8 @@ class MessageSummary
 end
 
 class Message
+  include HasState
+
   def initialize hash
     @from = Person.from_string hash["from"]
     @to = Set.new hash["to"].map { |p| Person.from_string p }

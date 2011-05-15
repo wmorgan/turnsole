@@ -164,9 +164,10 @@ EOS
 
   def cleanup!
     ## mark as read any messages we have acquired
-    @messages.values.each do |v|
-      @context.client.set_state! v.message_id, (v.state - ["unread"])
-      @context.ui.broadcast self, :message_state, v.message_id
+    @messages.values.each do |m|
+      next unless m.unread?
+      @context.client.set_state! m.message_id, (m.state - ["unread"])
+      @context.ui.broadcast self, :message_state, m.message_id
     end
     ## reload the thread. we're guaranteed this happens *after* the message
     ## states are updated above because client calls are queued. if we start
