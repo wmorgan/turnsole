@@ -90,8 +90,6 @@ Return value:
   /usr/bin/run-mailcap will be tried.
 EOS
 
-    ## raw_content is the post-MIME-decode content. this is used for
-    ## saving the attachment to disk.
     attr_reader :message_id, :part_id, :content_type, :filename, :size, :lines, :content
     bool_reader :quotable
 
@@ -117,22 +115,24 @@ EOS
       @when_loaded_callbacks = []
     end
 
-    ## downloads, if necessary, then runs the callback
+    ## downloads the content, if necessary, then runs the callback
     def with_content(&callback)
       case @content
       when :loading
         @when_loaded_callbacks << callback
       when nil
-        @content = :loading # just a placeholder to avoid multiple loads
-        say_id = @context.screen.minibuf.say "loading attachment #{@filename}..."
+        @content = :loading # a sentinel to avoid multiple loads
+        say_id = @context.screen.minibuf.say "downloading attachment #{@filename}..."
         @when_loaded_callbacks << callback
-        @context.client.load_part(@message_id, @part_id) do |content|
-          receive_content content
-          @context.screen.minibuf.clear say_id
-          @when_loaded_callbacks.each { |c| c.call(content) }
-        end
+        @context.client.load_part(@message_id, @part_id,
+          :callback => lambda do |content|
+            receive_content content
+            @when_loaded_callbacks.each { |c| c.call @content }
+          end,
+          :ensure => lambda { @context.screen.minibuf.clear say_id }
+        )
       else
-        callback.call(content)
+        callback.call @content
       end
     end
 
@@ -195,7 +195,7 @@ EOS
 
     ## used when viewing the attachment as text
     def to_s
-      @lines || @raw_content
+      @lines || @content
     end
   end
 

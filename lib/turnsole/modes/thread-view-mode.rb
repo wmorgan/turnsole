@@ -270,7 +270,7 @@ EOS
       debug "bounce command: #{cmd}"
       begin
         IO.popen(cmd, 'w') do |sm|
-          sm.puts m.raw_message
+          sm.write m.raw_message
         end
         raise SendmailCommandFailed, "Couldn't execute #{cmd}" unless $? == 0
       rescue SystemCallError, SendmailCommandFailed => e
@@ -389,13 +389,13 @@ EOS
       default_dir = ENV["HOME"] if default_dir.nil? || default_dir.empty?
       default_fn = File.expand_path File.join(default_dir, chunk.filename)
       fn = BufferManager.ask_for_filename :filename, "Save attachment to file: ", default_fn
-      save_to_file(fn) { |f| f.print chunk.raw_content } if fn
+      save_to_file(fn) { |f| f.write chunk.content } if fn
     else
       m = @message_lines[curpos]
       fn = BufferManager.ask_for_filename :filename, "Save message to file: "
       return unless fn
       save_to_file(fn) do |f|
-        m.each_raw_message_line { |l| f.print l }
+        m.each_raw_message_line { |l| f.write l }
       end
     end
   end
@@ -411,7 +411,7 @@ EOS
     m.chunks.each do |chunk|
       next unless chunk.is_a?(Chunk::Attachment)
       fn = File.join(folder, chunk.filename)
-      num_errors += 1 unless save_to_file(fn, false) { |f| f.print chunk.raw_content }
+      num_errors += 1 unless save_to_file(fn, false) { |f| f.write chunk.content }
       num += 1
     end
 
