@@ -27,7 +27,7 @@ class InboxMode < ThreadIndexMode
 
   def archive
     return unless cursor_thread
-    modify_thread_labels "archiving thread", [curpos], [cursor_thread.labels - %w(inbox)], :hide => true
+    modify_thread_labels cursor_thread, cursor_thread.labels - %w(inbox), :desc => "archiving thread"
   end
 
   def multi_archive threads

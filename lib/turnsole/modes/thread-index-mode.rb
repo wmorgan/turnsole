@@ -208,26 +208,29 @@ EOS
     end
   end
 
-  def modify_thread_labels desc, positions, new_labels_by_thread, opts={}
-    threads = positions.map { |i| @threads[i] }
+  def modify_thread_labels threads, new_labels_by_thread, opts={}
+    threads = Array threads
+    new_labels_by_thread = Array [new_labels_by_thread]
+
     old_labels = threads.map(&:labels)
     threads.zip(new_labels_by_thread).map { |thread, labels| thread.labels = labels }
 
     threads.each do |thread|
       @context.client.set_labels! thread.thread_id, thread.labels # sync to server
-      @context.ui.broadcast self, :thread, thread, :labels => thread.labels
-      drop_thread thread if is_relevant?(thread) == false
+      @context.ui.broadcast self, :thread, thread
+      drop_thread thread if is_relevant?(thread) == false # nil means dunno
     end
     regen_text!
 
-    to_undo desc do
+    to_undo(opts[:desc] || "operation") do
       threads.zip(old_labels).each { |thread, labels| thread.labels = labels }
       threads.each do |thread|
         @context.client.set_labels! thread.thread_id, thread.labels # sync to server
-        @context.ui.broadcast self, :thread, thread, :labels => thread.labels
-        if is_relevant?(thread) == false
+        @context.ui.broadcast self, :thread, thread
+        case is_relevant?(thread)
+        when false
           drop_thread thread
-        elsif is_relevant?(thread)
+        when true
           add_thread thread
         end
       end
@@ -240,7 +243,6 @@ EOS
   ## false if the thread does not belong in this view, true if it does, and
   ## nil if it's unknown.
   def is_relevant? t; nil end
-
 
   if false
     def handle_labeled_update sender, m
@@ -424,7 +426,7 @@ EOS
       cursor_thread.labels + %w(inbox)
     end
 
-    modify_thread_labels "archiving/unarchiving thread", [curpos], [labels]
+    modify_thread_labels cursor_thread, labels, :desc => "archiving/unarchiving thread"
   end
 
   def multi_toggle_archived threads
@@ -437,10 +439,12 @@ EOS
 
   def toggle_new
     t = cursor_thread or return
-    t.toggle_label :unread
-    update_text_for_line! curpos
+    modify_thread_labels t, if t.unread?
+      t.labels - ["unread"]
+    else
+      t.labels + ["unread"]
+    end
     cursor_down
-    Index.save_thread t
   end
 
   def multi_toggle_new threads
@@ -586,7 +590,7 @@ EOS
       user_labels = @context.input.ask_for_labels :label, "Labels for thread: ", modifyl, @hidden_labels
       return unless user_labels
 
-      modify_thread_labels "changing thread labels", [curpos], [keepl + user_labels]
+      modify_thread_labels thread, keepl + user_labels, :desc => "changing thread labels"
       @context.labels.prune! # why not?
     end
   end
@@ -714,6 +718,10 @@ protected
   end
 
   def drop_thread t; @threads.delete t end
+  def add_thread t
+    @threads << t
+    sort_threads!
+  end
 
   def update_text_for_line! l
     need_update = false
