@@ -155,6 +155,7 @@ EOS
     buf_cols = Ncurses.cols
 
     return unless buf_rows > 0 && buf_cols > 0
+    return unless buf_rows > 4 && buf_cols > 30 # don't draw this small
 
     buf = @buffers.last
     buf.set_size buf_rows, buf_cols # could've changed due to screen resize, or minibuf add/remove
