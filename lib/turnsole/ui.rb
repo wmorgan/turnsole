@@ -1,5 +1,6 @@
 require 'thread'
 require 'open3'
+require 'set'
 
 ## handles starting and stopping ncurses, taking input from the keyboard, the
 ## main event loop, and the broadcast/listen stuff
@@ -13,11 +14,11 @@ class UI
     @input_thread = nil
     @q = Queue.new
     @quit = false
-    @event_listeners = []
     Console.init_locale!
   end
 
   def log; @context.log end
+    @event_listeners = Set.new
 
   def start!
     @input_thread = start_input_thread!
