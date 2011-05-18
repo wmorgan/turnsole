@@ -22,31 +22,29 @@ class ComposeMode < EditMessageMode
   end
 
   def self.spawn_nicely context, opts={}
-    context.input.asking do
-      from = opts[:from] || if context.config.ask_for_from
-        context.input.ask_for_account :account, "From (default #{context.accounts.default_account.email}): " or return
-      end
-
-      to = opts[:to] || if context.config.ask_for_to != false
-        context.input.ask_for_contacts :people, "To: ", [opts[:to_default]] or return
-      end
-
-      cc = opts[:cc] || if context.config.ask_for_cc
-        context.input.ask_for_contacts :people, "Cc: " or return
-      end
-
-      bcc = opts[:bcc] || if context.config.ask_for_bcc
-        context.input.ask_for_contacts :people, "Bcc: " or return
-      end
-
-      subj = opts[:subj] || if context.config.ask_for_subject
-        context.input.ask :subject, "Subject: " or return
-      end
-
-      mode = ComposeMode.new context, :from => from, :to => to, :cc => cc, :bcc => bcc, :subj => subj
-      context.screen.spawn "New Message", mode
-      mode.edit_message!
+    from = opts[:from] || if context.config.ask_for_from
+      context.input.ask_for_account :account, "From (default #{context.accounts.default_account.email}): " or return
     end
+
+    to = opts[:to] || if context.config.ask_for_to != false
+      context.input.ask_for_contacts :people, "To: ", [opts[:to_default]] or return
+    end
+
+    cc = opts[:cc] || if context.config.ask_for_cc
+      context.input.ask_for_contacts :people, "Cc: " or return
+    end
+
+    bcc = opts[:bcc] || if context.config.ask_for_bcc
+      context.input.ask_for_contacts :people, "Bcc: " or return
+    end
+
+    subj = opts[:subj] || if context.config.ask_for_subject
+      context.input.ask :subject, "Subject: " or return
+    end
+
+    mode = ComposeMode.new context, :from => from, :to => to, :cc => cc, :bcc => bcc, :subj => subj
+    context.screen.spawn "New Message", mode
+    mode.edit_message!
   end
 end
 

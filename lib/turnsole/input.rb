@@ -19,60 +19,16 @@ class Input
   def initialize context
     @context = context
     @state = :normal
-
-    ## we maintain two continuations for question-handling to avoid
-    ## inversion-of-control programming.
-    ##
-    ## we could do this with a fiber if we were 1.9-specific.
-    @question_outer_cont = nil
-    @question_inner_cont = nil
   end
 
   def log; @context.log end
 
-  def asking
-    raise "duplicate question continuation" if @question_outer_cont
-    v = callcc { |c| c }
-    if v == :return
-      return
-    else
-      @question_outer_cont = v
-      begin
-        yield
-      ensure
-        @question_outer_cont = nil
-      end
-    end
-  end
-
-  ## rarely used
-  def cancel_current_question!
-    @question_outer_cont = nil
-  end
-
+  ## assumes we're running in the context of a fiber
   def asking_getchar
-    what, val = callcc { |c| [:cont, c] }
-    case what
-    when :char
-      @question_inner_cont = nil
-      val
-    when :cont
-      raise "must be called within an #asking block" unless @question_outer_cont
-      @question_inner_cont = val
-      @question_outer_cont.call :return
-      raise "never reached"
-    end
+    Fiber.yield
   end
 
   def handle input_char
-    if @question_inner_cont
-      v = callcc { |c| c }
-      return if v == :return
-      @question_outer_cont = v
-      @question_inner_cont.call :char, input_char
-      raise "never reached"
-    end
-
     focus_mode = @context.screen.focus_buf.mode
 
     if focus_mode.in_search? && (input_char != CONTINUE_IN_BUFFER_SEARCH_KEY.ord)
@@ -232,12 +188,10 @@ class Input
   end
 
   def ask_for_account domain, question
-    @context.input.asking do
-      completions = @context.accounts.accounts.map { |a| a.email_ready_address }
-      answer = @context.input.ask_many_emails_with_completions domain, question, completions, ""
-      answer = @context.accounts.default_account.email if answer == ""
-      @context.accounts.account_for Person.from_string(answer).email if answer
-    end
+    completions = @context.accounts.accounts.map { |a| a.email_ready_address }
+    answer = @context.input.ask_many_emails_with_completions domain, question, completions, ""
+    answer = @context.accounts.default_account.email if answer == ""
+    @context.accounts.account_for Person.from_string(answer).email if answer
   end
 
   def ask_getch question, accept=nil

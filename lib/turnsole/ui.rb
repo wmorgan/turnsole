@@ -2,9 +2,10 @@ require 'thread'
 require 'open3'
 require 'set'
 
-## handles starting and stopping ncurses, taking input from the keyboard, the
-## main event loop, and the broadcast/listen stuff
 module Turnsole
+
+## the user interface controller. maintains the event loop for the
+## entire program. dispatches events to the appropriate fibers.
 class UI
   include LogsStuff
 
@@ -15,6 +16,8 @@ class UI
 
     @event_listeners = Set.new
 
+    ## a stack of input-drinking threads. topmost always gets it.
+    @input_fibers = []
   end
 
   def log; @context.log end
@@ -35,7 +38,7 @@ class UI
   def remove_event_listener l; @event_listeners.delete l end
   def broadcast source, event, *args; enqueue :broadcast, source, event, *args end
 
-  ## call this from the main thread
+  ## the main event loop. blocks. keep calling this until quit?
   def step
     @context.screen.draw!
 
@@ -47,21 +50,29 @@ class UI
 
     case event
     when :interrupt
-      ## we might be interrupted in the middle of asking a question. if so,
-      ## then just cancel it.
-      @context.input.cancel_current_question!
-      @context.screen.minibuf.deactivate_textfield!
-      @context.input.asking do
+      f = Fiber.new do
         if @context.input.ask_yes_or_no "Die ungracefully now?"
           raise "O, I die, Horatio; The potent poison quite o'er-crows my spirit!"
         end
       end
+
+      @input_fibers.push f
+      f.resume
     when :sigwinch
       @context.screen.resize_screen!
     when :keypress
       @context.screen.minibuf.clear_flash!
       key = args.first
-      action = @context.input.handle key
+      if @input_fibers.empty?
+        ## spawn a fiber
+        f = Fiber.new { @context.input.handle key }
+        @input_fibers.push f
+      end
+
+      fiber = @input_fibers.last
+      fiber.resume key
+      ## now remove it if it's done
+      @input_fibers.delete fiber unless fiber.alive?
     when :server_results
       results, callback = args
       callback.call(*results) if callback

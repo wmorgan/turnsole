@@ -173,26 +173,22 @@ EOS
   end
 
   def killable?
-    @context.input.asking do
-      !edited? || @context.input.ask_yes_or_no("Discard message?")
-    end
+    !edited? || @context.input.ask_yes_or_no("Discard message?")
   end
 
   def unsaved?; edited? end
 
   def attach_file
-    @context.input.asking do
-      fn = @context.input.ask_for_filename :attachment, "File name (enter for browser): "
-      return unless fn
-      begin
-        Dir[fn].each do |f|
-          @attachments << RMail::Message.make_file_attachment(f)
-          @attachment_names << f
-        end
-        update!
-      rescue SystemCallError => e
-        @context.screen.minibuf.flash "Can't read #{fn}: #{e.message}"
+    fn = @context.input.ask_for_filename :attachment, "File name (enter for browser): "
+    return unless fn
+    begin
+      Dir[fn].each do |f|
+        @attachments << RMail::Message.make_file_attachment(f)
+        @attachment_names << f
       end
+      update!
+    rescue SystemCallError => e
+      @context.screen.minibuf.flash "Can't read #{fn}: #{e.message}"
     end
   end
 
@@ -325,36 +321,34 @@ protected
   end
 
   def send_message
-    @context.input.asking do
-      return false if !edited? && !@context.input.ask_yes_or_no("Message unedited. Really send?")
-      return false if @context.config.confirm_no_attachments && mentions_attachments? && @attachments.size == 0 && !@context.input.ask_yes_or_no("You haven't added any attachments. Really send?")
-      return false if @context.config.confirm_top_posting && top_posting? && !@context.input.ask_yes_or_no("You're top-posting. That makes you a bad person. Really send?")
+    return false if !edited? && !@context.input.ask_yes_or_no("Message unedited. Really send?")
+    return false if @context.config.confirm_no_attachments && mentions_attachments? && @attachments.size == 0 && !@context.input.ask_yes_or_no("You haven't added any attachments. Really send?")
+    return false if @context.config.confirm_top_posting && top_posting? && !@context.input.ask_yes_or_no("You're top-posting. That makes you a bad person. Really send?")
 
-      from_email = if @header["From"] =~ /<?(\S+@(\S+?))>?$/
-        $1
-      else
-        @context.accounts.default_account.email
-      end
-
-      acct = @context.accounts.account_for(from_email) || @context.accounts.default_account
-
-      begin
-        m = build_message
-      rescue Crypto::Error => e
-        warn "Problem sending mail: #{e.message}"
-        @context.screen.minibuf.flash "Problem sending mail: #{e.message}"
-        return
-      end
-
-      say_id = @context.screen.minibuf.say "Sending message..."
-      @context.client.send_message(m,
-        :callback => lambda do |results|
-          @context.screen.minibuf.flash "Message sent!"
-          @context.screen.kill_buffer buffer
-        end,
-        :ensure => lambda { @context.screen.minibuf.clear say_id }
-        )
+    from_email = if @header["From"] =~ /<?(\S+@(\S+?))>?$/
+      $1
+    else
+      @context.accounts.default_account.email
     end
+
+    acct = @context.accounts.account_for(from_email) || @context.accounts.default_account
+
+    begin
+      m = build_message
+    rescue Crypto::Error => e
+      warn "Problem sending mail: #{e.message}"
+      @context.screen.minibuf.flash "Problem sending mail: #{e.message}"
+      return
+    end
+
+    say_id = @context.screen.minibuf.say "Sending message..."
+    @context.client.send_message(m,
+      :callback => lambda do |results|
+        @context.screen.minibuf.flash "Message sent!"
+        @context.screen.kill_buffer buffer
+      end,
+      :ensure => lambda { @context.screen.minibuf.clear say_id }
+      )
   end
 
   def save_as_draft
@@ -444,12 +438,10 @@ protected
   def edit_field field
     case field
     when "Subject"
-      @context.input.asking do
-        text = @context.input.ask :subject, "Subject: ", @header[field]
-        if text
-          @header[field] = parse_header field, text
-          update!
-        end
+      text = @context.input.ask :subject, "Subject: ", @header[field]
+      if text
+        @header[field] = parse_header field, text
+        update!
       end
     else
       default = case field
@@ -460,13 +452,11 @@ protected
         @header[field]
       end
 
-      @context.input.asking do
-        contacts = @context.input.ask_for_contacts :people, "#{field}: ", default
-        if contacts
-          text = contacts.map { |s| s.email_ready_address }.join(", ")
-          @header[field] = parse_header field, text
-          update!
-        end
+      contacts = @context.input.ask_for_contacts :people, "#{field}: ", default
+      if contacts
+        text = contacts.map { |s| s.email_ready_address }.join(", ")
+        @header[field] = parse_header field, text
+        update!
       end
     end
   end

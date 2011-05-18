@@ -16,24 +16,20 @@ class TextMode < ScrollMode
   end
 
   def save_to_disk
-    @context.input.asking do
-      fn = @context.input.ask_for_filename :filename, "Save to file: ", @default_filename
-      @context.ui.save_to_file(fn) { |f| f.puts text } if fn
-    end
+    fn = @context.input.ask_for_filename :filename, "Save to file: ", @default_filename
+    @context.ui.save_to_file(fn) { |f| f.puts text } if fn
   end
 
   def pipe
-    @context.input.asking do
-      command = @context.input.ask(:shell, "pipe command: ")
-      return if command.nil? || command.empty?
+    command = @context.input.ask(:shell, "pipe command: ")
+    return if command.nil? || command.empty?
 
-      output = @context.ui.pipe_to_process(command) do |stream|
-        @text.each_line { |l| stream.puts l }
-      end
+    output = @context.ui.pipe_to_process(command) do |stream|
+      @text.each_line { |l| stream.puts l }
+    end
 
-      if output
-        @context.screen.spawn "Output of '#{command}'", TextMode.new(@context, output.force_to_ascii)
-      end
+    if output
+      @context.screen.spawn "Output of '#{command}'", TextMode.new(@context, output.force_to_ascii)
     end
   end
 

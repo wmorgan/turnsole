@@ -144,11 +144,9 @@ EOS
   end
 
   def refine_search
-    @context.input.asking do
-      query = @context.input.ask :search, "refine query: ", (@query + " ")
-      return unless query && query !~ /^\s*$/
-      SearchResultsMode.spawn_from_query @context, query
-    end
+    query = @context.input.ask :search, "refine query: ", (@query + " ")
+    return unless query && query !~ /^\s*$/
+    SearchResultsMode.spawn_from_query @context, query
   end
 
   ## open up a thread view window
@@ -586,13 +584,11 @@ EOS
     speciall = @hidden_labels + @context.labels.reserved_labels
     keepl, modifyl = thread.labels.partition { |t| speciall.member? t }.map { |x| Set.new x }
 
-    @context.input.asking do
-      user_labels = @context.input.ask_for_labels :label, "Labels for thread: ", modifyl, @hidden_labels
-      return unless user_labels
+    user_labels = @context.input.ask_for_labels :label, "Labels for thread: ", modifyl, @hidden_labels
+    return unless user_labels
 
-      modify_thread_labels thread, keepl + user_labels, :desc => "changing thread labels"
-      @context.labels.prune! # why not?
-    end
+    modify_thread_labels thread, keepl + user_labels, :desc => "changing thread labels"
+    @context.labels.prune! # why not?
   end
 
   def multi_edit_labels threads

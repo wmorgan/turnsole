@@ -27,23 +27,21 @@ class Tagger
 
     noun = num_tagged == 1 ? @noun : @plural_noun
 
-    @context.input.asking do
-      if action.nil?
-        c = @context.input.ask_getch "apply to #{num_tagged} tagged #{noun}:"
-        return if c.nil? # user cancelled
-        action = @context.input.resolve_input_on_mode @mode, c
-      end
+    if action.nil?
+      c = @context.input.ask_getch "apply to #{num_tagged} tagged #{noun}:"
+      return if c.nil? # user cancelled
+      action = @context.input.resolve_input_on_mode @mode, c
+    end
 
-      if action
-        tagged_sym = "multi_#{action}".intern
-        if @mode.respond_to? tagged_sym
-          @mode.send tagged_sym, targets
-        else
-          @context.screen.minibuf.flash "That command cannot be applied to multiple #{plural_noun}."
-        end
+    if action
+      tagged_sym = "multi_#{action}".intern
+      if @mode.respond_to? tagged_sym
+        @mode.send tagged_sym, targets
       else
-        @context.screen.minibuf.flash "Unknown command #{c.to_character}."
+        @context.screen.minibuf.flash "That command cannot be applied to multiple #{plural_noun}."
       end
+    else
+      @context.screen.minibuf.flash "Unknown command #{c.to_character}."
     end
   end
 end

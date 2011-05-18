@@ -697,15 +697,13 @@ EOS
 
     question = "Pipe #{chunk ? "attachment" : "raw message"} to command: "
 
-    @context.input.asking do
-      command = @context.input.ask :shell, question
-      return if command.nil? || command.empty?
+    command = @context.input.ask :shell, question
+    return if command.nil? || command.empty?
 
-      if chunk
-        pipe_chunk chunk, command
-      else
-        pipe_message message, command
-      end
+    if chunk
+      pipe_chunk chunk, command
+    else
+      pipe_message message, command
     end
   end
 

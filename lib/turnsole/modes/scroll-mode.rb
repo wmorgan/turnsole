@@ -84,12 +84,10 @@ class ScrollMode < Mode
   end
 
   def search_in_buffer
-    @context.input.asking do
-      query = @context.input.ask :search, "search in buffer: "
-      return if query.nil? || query.empty?
-      @search_query = Regexp.escape query
-      continue_search_in_buffer
-    end
+    query = @context.input.ask :search, "search in buffer: "
+    return if query.nil? || query.empty?
+    @search_query = Regexp.escape query
+    continue_search_in_buffer
   end
 
   ## subclasses can override these three!
