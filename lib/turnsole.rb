@@ -7,6 +7,7 @@ require 'set'
 
 require "turnsole/util"
 require "turnsole/logger"
+require "turnsole/fiberback"
 require "turnsole/hook"
 
 ## the following files will call HookManager.register at load time,
