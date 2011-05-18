@@ -110,8 +110,8 @@ begin
 
   log.remove_sink $stderr
   turnsole.screen.start_cursing!
+  turnsole.screen.start_input_thread!
   turnsole.colors.setup!
-  turnsole.ui.start!
 
   log.debug "initializing log buffer"
   lmode = Turnsole::LogMode.new turnsole
@@ -151,8 +151,10 @@ rescue Exception => e
 ensure
   log.remove_sink lmode # buffer is gone by now
   log.info "goodbye"
-  turnsole.screen.stop_cursing! if turnsole.screen
-  turnsole.ui.stop! if turnsole.ui
+  if turnsole.screen
+    turnsole.screen.stop_input_thread!
+    turnsole.screen.stop_cursing!
+  end
   log.add_sink $stderr
   turnsole.shutdown!
 

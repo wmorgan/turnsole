@@ -10,24 +10,14 @@ class UI
 
   def initialize context
     @context = context
-    @cursing = false
-    @input_thread = nil
-    @q = Queue.new
+    @q = Queue.new # the main event queue
     @quit = false
-    Console.init_locale!
+
+    @event_listeners = Set.new
+
   end
 
   def log; @context.log end
-    @event_listeners = Set.new
-
-  def start!
-    @input_thread = start_input_thread!
-  end
-
-  def stop!
-    @input_thread.kill if @input_thread
-    @input_thread = nil
-  end
 
   ## these methods are all globally-callable. go crazy
   def sigwinch_happened!; enqueue :sigwinch end
@@ -91,15 +81,8 @@ class UI
     end
   end
 
-  def shell_out command
-    Ncurses.endwin
-    stop!
-    success = system command
-    Ncurses.stdscr.keypad 1
-    Ncurses.refresh
-    Ncurses.curs_set 0
-    start!
-    success
+  def shell_out cmd
+    @context.screen.with_cursing_paused { system cmd }
   end
 
   def save_to_file fn, talk=true
@@ -156,25 +139,6 @@ class UI
     warn "error running #{command}: #{e.message}"
     @context.screen.minibuf.flash "Error: #{e.message}"
     nil
-  end
-
-private
-
-  def start_input_thread!
-    Thread.new do
-      while true
-        case(c = Ncurses.threadsafe_blocking_getch)
-        when nil
-          ## timeout -- don't think this actually happens
-        when 410
-          ## ncurses's way of telling us it's detected a refresh.  since we
-          ## have our own sigwinch handler, we get this AFTER we've already processed
-          ## the event, so we don't need to do anything.
-        else
-          enqueue :keypress, c
-        end
-      end
-    end
   end
 end
 

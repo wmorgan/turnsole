@@ -50,6 +50,8 @@ EOS
 
     @dirty = true
     @cursing = false
+
+    Console.init_locale!
   end
 
   attr_reader :focus_buf, :minibuf, :buffers
@@ -78,6 +80,40 @@ EOS
     Ncurses.endwin
     @dirty = true
     @cursing = false
+  end
+
+  def start_input_thread!
+    @input_thread ||= Thread.new do
+      while true
+        case(c = Ncurses.threadsafe_blocking_getch)
+        when nil
+          ## timeout -- don't think this actually happens
+        when 410
+          ## ncurses's way of telling us it's detected a refresh.  since
+          ## we have our own sigwinch handler, we get this AFTER we've
+          ## already processed the event, so we don't need to do
+          ## anything.
+        else
+          @context.ui.enqueue :keypress, c
+        end
+      end
+    end
+  end
+
+  def stop_input_thread!
+    @input_thread.kill if @input_thread
+    @input_thread = nil
+  end
+
+  def with_cursing_paused
+    Ncurses.endwin
+    stop_input_thread!
+    ret = yield
+    Ncurses.stdscr.keypad 1
+    Ncurses.refresh
+    Ncurses.curs_set 0
+    start_input_thread!
+    ret
   end
 
   def focus_on buf
