@@ -75,9 +75,11 @@ class Input
 
     focus_mode = @context.screen.focus_buf.mode
 
-    if focus_mode.in_search? && input_char != CONTINUE_IN_BUFFER_SEARCH_KEY.ord
+    if focus_mode.in_search? && (input_char != CONTINUE_IN_BUFFER_SEARCH_KEY.ord)
       focus_mode.cancel_search!
-    elsif(action = resolve_input_on_mode focus_mode, input_char)
+    end
+
+    if(action = resolve_input_on_mode focus_mode, input_char)
       focus_mode.send action
     elsif(action = resolve_input_with_keymap(input_char, @context.global.keymap))
       @context.global.do action
