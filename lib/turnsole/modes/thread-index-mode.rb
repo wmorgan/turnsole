@@ -264,60 +264,6 @@ EOS
   ## nil if it's unknown.
   def is_relevant? t; nil end
 
-  if false
-    def handle_labeled_update sender, m
-      if(t = thread_containing(m))
-        l = @lines[t] or return
-        update_text_for_line! l
-      elsif is_relevant?(m)
-        add_or_unhide m
-      end
-    end
-
-    def handle_simple_update sender, message_id, thread_id
-      t = @threads.find { |t| t.thread_id == thread_id } or return
-      l = @lines[t] or return
-      update_text_for_line! l
-    end
-
-    %w(read unread archived starred unstarred).each do |state|
-      define_method "handle_#{state}_update" do |*a|
-        handle_simple_update(*a)
-      end
-    end
-
-    def handle_added_update sender, m
-      add_or_unhide m
-      BufferManager.draw_screen
-    end
-
-    def handle_single_message_deleted_update sender, m
-      @ts_mutex.synchronize do
-        return unless @ts.contains? m
-        @ts.remove_id m.id
-      end
-      update
-    end
-
-    def handle_deleted_update sender, m
-      t = @ts_mutex.synchronize { @ts.thread_for m }
-      return unless t
-      hide_thread t
-      update
-    end
-
-    def handle_spammed_update sender, m
-      t = @ts_mutex.synchronize { @ts.thread_for m }
-      return unless t
-      hide_thread t
-      update
-    end
-
-    def handle_undeleted_update sender, m
-      add_or_unhide m
-    end
-  end
-
   def edit_message
     return unless(t = cursor_thread)
     message, *crap = t.find { |m, *o| m.has_label? :draft }
