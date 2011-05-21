@@ -82,11 +82,10 @@ class UI
       ## triggered by an input. so let's remove him from there if he's done.
       @input_fibers.delete fiber unless fiber.alive?
     when :broadcast
-      source, event, *args = args
+      event, *args = args
       method = "handle_#{event}_update"
       @event_listeners.each do |l|
-        next if l == source
-        l.send(method, source, *args) if l.respond_to?(method)
+        l.send(method, *args) if l.respond_to?(method)
       end
     when :redraw
       # nothing to do

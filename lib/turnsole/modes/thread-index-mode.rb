@@ -186,7 +186,7 @@ EOS
     end
   end
 
-  def handle_thread_update sender, new_thread
+  def handle_thread_update new_thread
     old_thread, index = @threads.find_with_index { |x| x.thread_id == new_thread.thread_id }
 
     if old_thread # we have this thread currently

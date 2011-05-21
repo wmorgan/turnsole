@@ -167,11 +167,11 @@ EOS
     @messages.values.each do |m|
       next unless m.unread?
       @context.client.set_state! m.message_id, (m.state - ["unread"])
-      @context.ui.broadcast self, :message_state, m.message_id
+      @context.ui.broadcast :message_state, m.message_id
     end
     threadinfo = @context.client.threadinfo @threadinfo.thread_id
     ## broadcast new version out to everyone
-    @context.ui.broadcast self, :thread, threadinfo
+    @context.ui.broadcast :thread, threadinfo
   end
 
   def toggle_wrap
