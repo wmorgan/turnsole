@@ -56,8 +56,13 @@ class Client
   end
 
   ## a couple guys we just relay as is
-  %w(set_state! message_part set_labels!).each do |m|
+  %w(set_state! set_thread_state! message_part set_labels!).each do |m|
     define_method(m) { |*a| perform(m.to_sym, *a) }
+  end
+
+  def set_thread_state! thread_id, state
+    result = perform :set_thread_state!, thread_id, state
+    ThreadSummary.new result
   end
 
   ## a couple guys we relay and Set-ify the results

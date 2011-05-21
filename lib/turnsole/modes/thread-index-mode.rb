@@ -206,6 +206,27 @@ EOS
     end
   end
 
+  def modify_thread_state threads, new_state_by_thread, opts={}
+    threads = Array threads
+    new_state_by_thread = Array [new_state_by_thread]
+
+    old_state = threads.map(&:state)
+    threads.zip(new_state_by_thread).map { |thread, state| thread.state = state }
+
+    threads.each do |thread|
+      new_thread = @context.client.set_thread_state! thread.thread_id, thread.state # sync to server
+      @context.ui.broadcast :thread, new_thread
+    end
+
+    to_undo(opts[:desc] || "operation") do
+      threads.zip(old_state).each { |thread, state| thread.state = state }
+      threads.each do |thread|
+        new_thread = @context.client.set_state! thread.thread_id, thread.state # sync to server
+        @context.ui.broadcast :thread, new_thread
+      end
+    end
+  end
+
   def modify_thread_labels threads, new_labels_by_thread, opts={}
     threads = Array threads
     new_labels_by_thread = Array [new_labels_by_thread]
@@ -437,10 +458,10 @@ EOS
 
   def toggle_new
     t = cursor_thread or return
-    modify_thread_labels t, if t.unread?
-      t.labels - ["unread"]
+    modify_thread_state t, if t.unread?
+      t.state - ["unread"]
     else
-      t.labels + ["unread"]
+      t.state + ["unread"]
     end
     cursor_down
   end
