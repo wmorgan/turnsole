@@ -6,22 +6,20 @@ class Tagger
     @context = context
     @mode = mode
     @noun = noun
-    @tagged = {}
+    @tagged = Set.new
     @plural_noun = plural_noun || (@noun + "s")
   end
 
-  def tagged? o; @tagged[o]; end
-  def toggle_tag_for o; @tagged[o] = !@tagged[o]; end
-  def tag o; @tagged[o] = true; end
-  def untag o; @tagged[o] = false; end
-  def drop_all_tags; @tagged.clear; end
-  def drop_tag_for o; @tagged.delete o; end
+  def tagged? o; @tagged.member?(o) end
+  def tag o; @tagged << o end
+  def untag o; @tagged.delete o end
+  def toggle o; tagged?(o) ? untag(o) : tag(o) end
+  def drop_all_tags!; @tagged.clear end
 
-  def apply_to_tagged action=nil
-    targets = @tagged.select { |k, v| v }.map { |k, v| k }
-    num_tagged = targets.size
+  def apply_to_tagged! action=nil
+    num_tagged = @tagged.size
     if num_tagged == 0
-      @context.screen.minibuf.flash "No tagged #{plural_noun}!"
+      @context.screen.minibuf.flash "No tagged #{@plural_noun}!"
       return
     end
 
@@ -36,7 +34,7 @@ class Tagger
     if action
       tagged_sym = "multi_#{action}".intern
       if @mode.respond_to? tagged_sym
-        @mode.send tagged_sym, targets
+        @mode.send tagged_sym, @tagged
       else
         @context.screen.minibuf.flash "That command cannot be applied to multiple #{plural_noun}."
       end

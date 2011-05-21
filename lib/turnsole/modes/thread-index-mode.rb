@@ -197,6 +197,12 @@ EOS
         @threads[index] = new_thread
         @lines.delete old_thread
         @lines[new_thread] = index
+
+        if @tags.tagged? old_thread
+          @tags.untag old_thread
+          @tags.tag new_thread
+        end
+
         update_text_for_line! index
       end
     elsif is_relevant?(new_thread) # we don't have it, and we need to add it
@@ -458,35 +464,40 @@ EOS
 
   def toggle_new
     t = cursor_thread or return
-    modify_thread_state t, if t.unread?
+    modify_thread_state [t], [if t.unread?
       t.state - ["unread"]
     else
       t.state + ["unread"]
-    end
+    end]
     cursor_down
   end
 
   def multi_toggle_new threads
-    threads.each { |t| t.toggle_label :unread }
-    regen_text
-    threads.each { |t| Index.save_thread t }
+    new_states = threads.map do |t|
+      if t.unread?
+        t.state - ["unread"]
+      else
+        t.state + ["unread"]
+      end
+    end
+    modify_thread_state threads, new_states
   end
 
   def multi_toggle_tagged threads
-    @mutex.synchronize { @tags.drop_all_tags }
-    regen_text
+    @tags.drop_all_tags!
+    regen_text!
   end
 
   def join_threads
     ## this command has no non-tagged form. as a convenience, allow this
     ## command to be applied to tagged threads without hitting ';'.
-    @tags.apply_to_tagged :join_threads
+    @tags.apply_to_tagged! :join_threads
   end
 
   def multi_join_threads threads
     @ts.join_threads threads or return
     threads.each { |t| Index.save_thread t }
-    @tags.drop_all_tags # otherwise we have tag pointers to invalid threads!
+    @tags.drop_all_tags! # otherwise we have tag pointers to invalid threads!
     update
   end
 
@@ -573,13 +584,13 @@ EOS
 
   def toggle_tagged
     t = cursor_thread or return
-    @tags.toggle_tag_for t
+    @tags.toggle t
     update_text_for_line! curpos
     cursor_down
   end
 
   def toggle_tagged_all
-    @mutex.synchronize { @threads.each { |t| @tags.toggle_tag_for t } }
+    @threads.each { |t| @tags.toggle t }
     regen_text
   end
 
@@ -596,7 +607,7 @@ EOS
     regen_text
   end
 
-  def apply_to_tagged; @tags.apply_to_tagged end
+  def apply_to_tagged; @tags.apply_to_tagged! end
 
   def edit_labels
     thread = cursor_thread or return
@@ -729,7 +740,7 @@ protected
   def cursor_thread; @threads[curpos] end
 
   def drop_all_threads
-    @tags.drop_all_tags
+    @tags.drop_all_tags!
     initialize_threads
     update
   end
