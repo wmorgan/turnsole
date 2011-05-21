@@ -29,60 +29,61 @@ class Client
   def server_info; @client_mutex.synchronize { @client.info } end
 
   ## returns an array of ThreadSummary objects
-  def search query, num, offset, opts={}, &callback
-    callback ||= opts[:callback]
-    perform :search, opts.merge(:args => [query, num, offset], :callback => lambda { |threads| callback.call threads.map { |t| ThreadSummary.new(t) } })
+  def search query, num, offset
+    threads = perform :search, query, num, offset
+    threads.map { |t| ThreadSummary.new t }
   end
 
-  def threadinfo thread_id, opts={}, &callback
-    callback ||= opts[:callback]
-    perform :threadinfo, opts.merge(:args => [thread_id], :callback => lambda { |r| callback.call ThreadSummary.new(r) })
+  def threadinfo thread_id
+    result = perform :threadinfo, thread_id
+    ThreadSummary.new result
   end
 
   ## returns an array of [MessageSummary, depth] pairs
-  def load_thread thread_id, opts={}, &callback
-    callback ||= opts[:callback]
-    perform :thread, opts.merge(:args => [thread_id], :callback => lambda { |results| callback.call results.map { |m, depth| [MessageSummary.new(m), depth] } })
+  def load_thread thread_id
+    results = perform :thread, thread_id
+    results.map { |m, depth| [MessageSummary.new(m), depth] }
   end
 
-  def load_message message_id, opts={}, &callback
-    callback ||= opts[:callback]
-    perform :message, opts.merge(:args => [message_id], :callback => lambda { |result| callback.call Message.new(result) })
+  def load_message message_id
+    result = perform :message, message_id
+    Message.new result
   end
 
-  def load_part message_id, part_id, opts={}, &callback
-    callback ||= opts[:callback]
-    perform :message_part, opts.merge(:args => [message_id, part_id], :callback => lambda { |result| callback.call result })
+  def thread_state thread_id
+    result = perform :thread_state, thread_id
+    Set.new result
   end
 
-  def thread_state thread_id, opts={}, &callback
-    callback ||= opts[:callback]
-    perform :thread_state, opts.merge(:args => [thread_id], :callback => lambda { |result| callback.call Set.new(result) })
+  ## a couple guys we just relay as is
+  %w(set_state! message_part set_labels!).each do |m|
+    define_method(m) { |*a| perform(m.to_sym, *a) }
+  end
+
+  ## a couple guys we relay and Set-ify the results
+  %w(contacts labels prune_labels!).each do |m|
+    define_method(m) { Set.new perform(m.to_sym) }
   end
 
   ## get the element out of the hash for your convenience
-  def count query, opts={}, &callback
-    callback ||= opts[:callback]
-    perform :count, opts.merge(:args => [query], :callback => lambda { |result| callback.call result["count"] })
+  def count query
+    result = perform :count, query
+    result["count"]
   end
 
   ## get the element out of the hash for your convenience
-  def size opts={}, &callback
-    callback ||= opts[:callback]
-    perform :size, opts.merge(:callback => lambda { |result| callback.call result["size"] })
-  end
-
-  ## for all other methods, we just send them to the client as is
-  def method_missing m, *a, &callback
-    opts = a.last.is_a?(Hash) ? a.pop : {}
-    callback ||= opts[:callback]
-    perform m, opts.merge(:args => a, :callback => callback)
+  def size
+    result = perform :size
+    result["size"]
   end
 
 private
 
-  def perform cmd, opts={}
-    @q.push [cmd, opts]
+  def perform cmd, *args
+    @q.push [cmd, args, Fiber.current]
+    val = Fiber.yield
+    raise val if val.is_a? Exception
+    val
   end
 
   def log; @context.log end
@@ -90,8 +91,7 @@ private
   def start_thread!
     Thread.new do
       while true
-        cmd, opts = @q.pop
-        args = opts[:args]
+        cmd, args, fiber = @q.pop
         pretty = "#{cmd}#{args.inspect}"[0, 50]
         debug "sending to server: #{pretty}"
         @context.ui.enqueue :redraw
@@ -100,23 +100,20 @@ private
         #@context.ui.enqueue :redraw
 
         startt = Time.now
-        begin
-          results = @client_mutex.synchronize { @client.send(cmd, *args) }
-          extra = results.is_a?(Array) ? " and returned #{results.size} results" : ""
+        results = begin
+          results = @client_mutex.synchronize { @client.send cmd, *args }
+          extra = case results
+            when Array; " and returned #{results.size} results"
+            when String; " and returned #{results.size} bytes"
+            else ""
+          end
           info sprintf("remote call #{pretty} took %d ms#{extra}", (Time.now - startt) * 1000)
-          @context.ui.enqueue :server_results, [results], opts[:callback] if opts[:callback]
-        rescue HeliotropeClient::Error => e
-          message = "heliotrope client error: #{e.class.name}: #{e.message}"
-          warn [message, e.backtrace[0..10].map { |l| "  "  + l }].flatten.join("\n")
-          @context.ui.enqueue :server_results, [results], opts[:on_error] if opts[:on_error]
-          @context.screen.minibuf.flash "Error: #{message}. See log for details."
-          @context.ui.enqueue :redraw
-        rescue StandardError => e
-          @context.ui.enqueue :server_results, [e], opts[:on_error] if opts[:on_error]
-        ensure
-          @context.ui.enqueue :server_results, [], opts[:ensure] if opts[:ensure]
-
+          results
+        rescue Exception => e
+          e
         end
+
+        @context.ui.enqueue :server_response, results, fiber
       end
     end
   end

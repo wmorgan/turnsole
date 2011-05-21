@@ -9,7 +9,7 @@ class Contacts
   attr_reader :contacts
 
   def load!
-    @context.client.contacts { |contacts| @contacts = Set.new contacts }
+    @contacts = @context.client.contacts
   end
 
   def recent_recipients; Set.new end

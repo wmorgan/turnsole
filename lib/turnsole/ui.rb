@@ -50,7 +50,7 @@ class UI
 
     case event
     when :interrupt
-      f = Fiber.new do
+      f = spawn_fiber do
         if @context.input.ask_yes_or_no "Die ungracefully now?"
           raise "O, I die, Horatio; The potent poison quite o'er-crows my spirit!"
         end
@@ -58,14 +58,16 @@ class UI
 
       @input_fibers.push f
       f.resume
+      @input_fibers.delete fiber unless fiber.alive?
     when :sigwinch
       @context.screen.resize_screen!
     when :keypress
       @context.screen.minibuf.clear_flash!
       key = args.first
+
       if @input_fibers.empty?
         ## spawn a fiber
-        f = Fiber.new { @context.input.handle key }
+        f = spawn_fiber { @context.input.handle key }
         @input_fibers.push f
       end
 
@@ -73,9 +75,12 @@ class UI
       fiber.resume key
       ## now remove it if it's done
       @input_fibers.delete fiber unless fiber.alive?
-    when :server_results
-      results, callback = args
-      callback.call(*results) if callback
+    when :server_response
+      results, fiber = args
+      fiber.resume results
+      ## this guy might (probably!) is on the input thread stack, having been
+      ## triggered by an input. so let's remove him from there if he's done.
+      @input_fibers.delete fiber unless fiber.alive?
     when :broadcast
       source, event, *args = args
       method = "handle_#{event}_update"
@@ -89,6 +94,18 @@ class UI
       # nothing to do
     else
       raise "unknown event: #{event.inspect}"
+    end
+  end
+
+  def spawn_fiber
+    Fiber.new do
+      begin
+        yield
+      rescue HeliotropeClient::Error => e
+        message = "heliotrope server error: #{e.class.name}: #{e.message}"
+        warn [message, e.backtrace[0..10].map { |l| "  "  + l }].flatten.join("\n")
+        @context.screen.minibuf.flash "Error: #{e.message}. See log for details."
+      end
     end
   end
 

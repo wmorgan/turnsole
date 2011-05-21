@@ -111,28 +111,14 @@ EOS
       @lines = nil
 
       receive_content content if content # if we happen to have it already...
-
-      @when_loaded_callbacks = []
     end
 
-    ## downloads the content, if necessary, then runs the callback
-    def with_content(&callback)
-      case @content
-      when :loading
-        @when_loaded_callbacks << callback
-      when nil
-        @content = :loading # a sentinel to avoid multiple loads
+    def content
+      @content ||= begin
         say_id = @context.screen.minibuf.say "downloading attachment #{@filename}..."
-        @when_loaded_callbacks << callback
-        @context.client.load_part(@message_id, @part_id,
-          :callback => lambda do |content|
-            receive_content content
-            @when_loaded_callbacks.each { |c| c.call @content }
-          end,
-          :ensure => lambda { @context.screen.minibuf.clear say_id }
-        )
-      else
-        callback.call @content
+        receive_content @context.client.message_part(@message_id, @part_id)
+      ensure
+        @context.screen.minibuf.clear say_id
       end
     end
 
@@ -152,6 +138,7 @@ EOS
         @lines = text_version.gsub("\r\n", "\n").gsub(/\t/, "        ").gsub(/\r/, "").split("\n")
         @quotable = true
       end
+      @content
     end
 
     def color; :default end
@@ -188,7 +175,7 @@ EOS
 
     def write_to_disk
       file = Tempfile.new(["sup", @filename.gsub("/", "_") || "sup-attachment"])
-      file.write @content
+      file.write content
       file.close
       file.path
     end

@@ -20,16 +20,13 @@ class SearchResultsMode < ThreadIndexMode
     BufferManager.flash "Search saved as \"#{name}\"" if SearchManager.add name, @query[:text].strip
   end
 
-  ## a proper is_relevant? method requires some way of asking the index
-  ## if an in-memory object satisfies a query. i'm not sure how to do
-  ## that yet. in the worst case i can make an in-memory index, add
-  ## the message, and search against it to see if i have > 0 results,
-  ## but that seems pretty insane.
-
+  ## TODO, maybe: write an is_relevant? method that talks to the index
+  ## and asks whether the thread is a member of these search results
+  ## or not.
   def self.spawn_from_query context, query
     title = query.length < 20 ? query : query[0 ... 20] + "..."
     mode = SearchResultsMode.new context, query
-    context.screen.spawn "search: \"#{title}\"", mode
+    buf = context.screen.spawn "search: \"#{title}\"", mode
     mode.load!
   end
 end

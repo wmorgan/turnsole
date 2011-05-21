@@ -111,7 +111,7 @@ EOS
     @colors.populate!
     @global.run_hook!
     @client.start!
-    @labels.load!
+    @ui.spawn_fiber { @labels.load! }.resume
 
     @hooks.run "startup"
   end

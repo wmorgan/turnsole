@@ -19,11 +19,11 @@ class Labels
   end
 
   def load!
-    @context.client.labels { |labels| @labels = Set.new labels }
+    @labels = @context.client.labels
   end
 
   def prune!
-    @context.client.prune_labels! { |labels| @labels = Set.new labels }
+    @labels = @context.client.prune_labels!
   end
 end
 end

@@ -51,7 +51,7 @@ class InboxMode < ThreadIndexMode
   ## we'll plug this in here... not sure if it's a good idea or not.
   def receive_threads(*a)
     super(*a)
-    @context.client.size { |size| @index_size = size }
+    @index_size = @context.client.size
   end
 
   def read_and_archive

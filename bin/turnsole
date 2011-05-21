@@ -135,7 +135,7 @@ begin
 
     mode = Turnsole::InboxMode.new turnsole
     tmode = turnsole.screen.spawn "inbox", mode
-    mode.load!
+    turnsole.ui.spawn_fiber { mode.load! }.resume
 
     #log.debug "starting periodic poller"
     #turnsole.poller.start
@@ -146,13 +146,12 @@ begin
   ## begin main loop
   turnsole.ui.step until turnsole.ui.quit?
 rescue Exception => e
-  log.error "dying due to #{e.class}: #{e.message}"
+  log.error "dying due to #{e.class}: #{e.message}\n#{e.backtrace[0..5].join("\n")}"
   raise
 ensure
   log.remove_sink lmode # buffer is gone by now
   log.info "goodbye"
   if turnsole.screen
-    turnsole.screen.stop_input_thread!
     turnsole.screen.stop_cursing!
   end
   log.add_sink $stderr

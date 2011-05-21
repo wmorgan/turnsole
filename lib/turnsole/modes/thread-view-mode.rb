@@ -159,7 +159,7 @@ EOS
   def [] i; @text[i] end
 
   def load!
-    @context.client.load_thread(@threadinfo.thread_id) { |thread| receive_thread thread }
+    receive_thread @context.client.load_thread(@threadinfo.thread_id)
   end
 
   def cleanup!
@@ -169,13 +169,9 @@ EOS
       @context.client.set_state! m.message_id, (m.state - ["unread"])
       @context.ui.broadcast self, :message_state, m.message_id
     end
-    ## reload the thread. we're guaranteed this happens *after* the message
-    ## states are updated above because client calls are queued. if we start
-    ## multiplexing those, we might have to be more sophisticated about this.
-    @context.client.threadinfo(@threadinfo.thread_id) do |threadinfo|
-      ## and send it out to everyone
-      @context.ui.broadcast self, :thread, threadinfo
-    end
+    threadinfo = @context.client.threadinfo @threadinfo.thread_id
+    ## broadcast new version out to everyone
+    @context.ui.broadcast self, :thread, threadinfo
   end
 
   def toggle_wrap
@@ -709,23 +705,21 @@ EOS
 
   ## download the raw message, then pipe it
   def pipe_message message, command
-    @context.client.raw_message(message.message_id) do |rawbody|
-      output = @context.ui.pipe_to_process(command) do |stream|
-        stream.write rawbody
-      end
-      handle_pipe_output command, output
+    rawbody = @context.client.raw_message message.message_id
+    output = @context.ui.pipe_to_process(command) do |stream|
+      stream.write rawbody
     end
+    handle_pipe_output command, output
   end
 
   ## pipe the chunk (we already have the content)
   def pipe_chunk chunk, command
-    chunk.with_content do |content|
-      output = @context.ui.pipe_to_process(command) do |stream|
-        stream.write content
-      end
-
-      handle_pipe_output command, output
+    content = chunk.content
+    output = @context.ui.pipe_to_process(command) do |stream|
+      stream.write content
     end
+
+    handle_pipe_output command, output
   end
 
   def handle_pipe_output command, output
@@ -750,7 +744,7 @@ private
 
   def load_any_open_messages!
     open = @thread.select { |m, depth| !m.fake? && @messages[m.message_id].nil? && @layouts[m].state != :closed }
-    open.each { |m, depth| @context.client.load_message(m.message_id) { |message| receive_message message } }
+    open.each { |m, depth| receive_message @context.client.load_message(m.message_id) }
   end
 
   def receive_message message
@@ -950,12 +944,10 @@ private
   end
 
   def view chunk
-    chunk.with_content do
-      @context.screen.minibuf.flash "viewing #{chunk.content_type} attachment..."
-      chunk.view! or begin
-        @context.screen.minibuf.flash "Couldn't execute view command, viewing as text."
-        @context.screen.spawn "Attachment: #{chunk.filename}", TextMode.new(chunk.to_s.force_to_ascii, chunk.filename)
-      end
+    @context.screen.minibuf.flash "viewing #{chunk.content_type} attachment..."
+    chunk.view! or begin
+      @context.screen.minibuf.flash "Couldn't execute view command, viewing as text."
+      @context.screen.spawn "Attachment: #{chunk.filename}", TextMode.new(chunk.to_s.force_to_ascii, chunk.filename)
     end
   end
 end

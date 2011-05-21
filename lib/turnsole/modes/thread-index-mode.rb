@@ -102,7 +102,7 @@ EOS
 
   def schedule_more num_threads
     return if @last_schedule_more_size == @threads.size
-    @context.client.search(query, num_threads, @threads.size) { |threads| receive_threads threads }
+    receive_threads @context.client.search(query, num_threads, @threads.size)
     @last_schedule_more_size = @threads.size
   end
 
