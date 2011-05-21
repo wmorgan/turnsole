@@ -101,7 +101,7 @@ class UI
       begin
         yield
       rescue HeliotropeClient::Error => e
-        message = "heliotrope server error: #{e.class.name}: #{e.message}"
+        message = "heliotrope server error: #{e.message}"
         warn [message, e.backtrace[0..10].map { |l| "  "  + l }].flatten.join("\n")
         @context.screen.minibuf.flash "Error: #{e.message}. See log for details."
       end
