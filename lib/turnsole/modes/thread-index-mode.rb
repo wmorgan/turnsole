@@ -212,22 +212,17 @@ EOS
     end
   end
 
-  def modify_thread_state threads, new_state_by_thread, opts={}
-    threads = Array threads
-    new_state_by_thread = Array [new_state_by_thread]
+  def modify_thread_state threads, new_states, opts={}
+    old_states = threads.map(&:state)
 
-    old_state = threads.map(&:state)
-    threads.zip(new_state_by_thread).map { |thread, state| thread.state = state }
-
-    threads.each do |thread|
-      new_thread = @context.client.set_thread_state! thread.thread_id, thread.state # sync to server
+    threads.zip(new_states).each do |thread, new_state|
+      new_thread = @context.client.set_thread_state! thread.thread_id, new_state
       @context.ui.broadcast :thread, new_thread
     end
 
     to_undo(opts[:desc] || "operation") do
-      threads.zip(old_state).each { |thread, state| thread.state = state }
-      threads.each do |thread|
-        new_thread = @context.client.set_state! thread.thread_id, thread.state # sync to server
+      threads.zip(old_states).each do |thread, old_state|
+        new_thread = @context.client.set_thread_state! thread.thread_id, old_state
         @context.ui.broadcast :thread, new_thread
       end
     end
