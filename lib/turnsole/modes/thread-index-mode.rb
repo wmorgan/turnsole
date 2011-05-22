@@ -44,7 +44,7 @@ EOS
     k.add :edit_message, "Edit message (drafts only)", 'e'
     k.add :toggle_spam, "Mark/unmark thread as spam", 'S'
     k.add :toggle_deleted, "Delete/undelete thread", 'd'
-    k.add :kill, "Kill thread (never to be seen in inbox again)", '&'
+    k.add :toggle_muted, "Mute thread (never to be seen in inbox again)", '&'
     k.add :flush_index, "Flush all changes now", '$'
     k.add :jump_to_next_new, "Jump to next new thread", :tab
     k.add :reply, "Reply to latest message in a thread", 'r'
@@ -212,17 +212,21 @@ EOS
     end
   end
 
-  def modify_thread_state threads, new_states, opts={}
-    old_states = threads.map(&:state)
+  def modify_thread_value threads, new_values, opts={}
+    value = opts[:value] or raise ArgumentError, "need :value"
+    setter = opts[:setter] or raise ArgumentError, "need :setter"
+    desc = opts[:desc] || "operation"
 
-    threads.zip(new_states).each do |thread, new_state|
-      new_thread = @context.client.set_thread_state! thread.thread_id, new_state
+    old_values = threads.map(&value)
+
+    threads.zip(new_values).each do |thread, new_value|
+      new_thread = @context.client.send setter, thread.thread_id, new_value
       @context.ui.broadcast :thread, new_thread
     end
 
-    to_undo(opts[:desc] || "operation") do
-      threads.zip(old_states).each do |thread, old_state|
-        new_thread = @context.client.set_thread_state! thread.thread_id, old_state
+    to_undo desc do
+      threads.zip(old_values).each do |thread, old_value|
+        new_thread = @context.client.send setter, thread.thread_id, old_value
         @context.ui.broadcast :thread, new_thread
       end
     end
@@ -275,153 +279,61 @@ EOS
     end
   end
 
-  ## returns an undo lambda
-  def actually_toggle_starred t
-    pos = curpos
-    if t.has_label? :starred # if ANY message has a star
-      t.remove_label :starred # remove from all
-      UpdateManager.relay self, :unstarred, t.first
-      lambda do
-        t.first.add_label :starred
-        UpdateManager.relay self, :starred, t.first
-        regen_text
-      end
-    else
-      t.first.add_label :starred # add only to first
-      UpdateManager.relay self, :starred, t.first
-      lambda do
-        t.remove_label :starred
-        UpdateManager.relay self, :unstarred, t.first
-        regen_text
-      end
+  ## message state toggles that we allow at the per-thread level,
+  ## for convenience.
+  { "new" => "unread",
+    "deleted" => "deleted",
+    "starred" => "starred"
+  }.each do |method, state|
+    define_method "toggle_#{method}" do
+      toggle_cursor_thread_state state
+    end
+
+    define_method "multi_toggle_#{method}" do |threads|
+      toggle_thread_states threads, state
     end
   end
 
-  def toggle_starred
+  ## thread label toggles that we support via immediate keystroke
+  ## commands, because they have special semantics in turnsole.
+  { "archived" => "inbox",
+    "spam" => "spam",
+    "muted" => "muted"
+  }.each do |method, label|
+    define_method "toggle_#{method}" do
+      toggle_cursor_thread_label label
+    end
+
+    define_method "multi_toggle_#{method}" do |threads|
+      toggle_thread_labels threads, label
+    end
+  end
+
+  def toggle_cursor_thread_state state
     t = cursor_thread or return
-    undo = actually_toggle_starred t
-    UndoManager.register "toggling thread starred status", undo, lambda { Index.save_thread t }
-    update_text_for_line! curpos
-    cursor_down
-    Index.save_thread t
-  end
-
-  def multi_toggle_starred threads
-    UndoManager.register "toggling #{threads.size.pluralize 'thread'} starred status",
-      threads.map { |t| actually_toggle_starred t },
-      lambda { threads.each { |t| Index.save_thread t } }
-    regen_text
-    threads.each { |t| Index.save_thread t }
-  end
-
-  ## returns an undo lambda
-  def actually_toggle_archived t
-    thread = t
-    pos = curpos
-    if t.has_label? :inbox
-      t.remove_label :inbox
-      UpdateManager.relay self, :archived, t.first
-      lambda do
-        thread.apply_label :inbox
-        update_text_for_line! pos
-        UpdateManager.relay self,:unarchived, thread.first
-      end
-    else
-      t.apply_label :inbox
-      UpdateManager.relay self, :unarchived, t.first
-      lambda do
-        thread.remove_label :inbox
-        update_text_for_line! pos
-        UpdateManager.relay self, :unarchived, thread.first
-      end
-    end
-  end
-
-  ## returns an undo lambda
-  def actually_toggle_spammed t
-    thread = t
-    if t.has_label? :spam
-      t.remove_label :spam
-      add_or_unhide t.first
-      UpdateManager.relay self, :unspammed, t.first
-      lambda do
-        thread.apply_label :spam
-        self.hide_thread thread
-        UpdateManager.relay self,:spammed, thread.first
-      end
-    else
-      t.apply_label :spam
-      hide_thread t
-      UpdateManager.relay self, :spammed, t.first
-      lambda do
-        thread.remove_label :spam
-        add_or_unhide thread.first
-        UpdateManager.relay self,:unspammed, thread.first
-      end
-    end
-  end
-
-  ## returns an undo lambda
-  def actually_toggle_deleted t
-    if t.has_label? :deleted
-      t.remove_label :deleted
-      add_or_unhide t.first
-      UpdateManager.relay self, :undeleted, t.first
-      lambda do
-        t.apply_label :deleted
-        hide_thread t
-        UpdateManager.relay self, :deleted, t.first
-      end
-    else
-      t.apply_label :deleted
-      hide_thread t
-      UpdateManager.relay self, :deleted, t.first
-      lambda do
-        t.remove_label :deleted
-        add_or_unhide t.first
-        UpdateManager.relay self, :undeleted, t.first
-      end
-    end
-  end
-
-  def toggle_archived
-    return unless cursor_thread
-    labels = if cursor_thread.has_label?("inbox")
-      cursor_thread.labels - %w(inbox)
-    else
-      cursor_thread.labels + %w(inbox)
-    end
-
-    modify_thread_labels cursor_thread, labels, :desc => "archiving/unarchiving thread"
-  end
-
-  def multi_toggle_archived threads
-    undos = threads.map { |t| actually_toggle_archived t }
-    UndoManager.register "deleting/undeleting #{threads.size.pluralize 'thread'}", undos, lambda { regen_text },
-                         lambda { threads.each { |t| Index.save_thread t } }
-    regen_text
-    threads.each { |t| Index.save_thread t }
-  end
-
-  def toggle_new
-    t = cursor_thread or return
-    modify_thread_state [t], [if t.unread?
-      t.state - ["unread"]
-    else
-      t.state + ["unread"]
-    end]
+    toggle_thread_states [t], state
     cursor_down
   end
 
-  def multi_toggle_new threads
+  def toggle_thread_states threads, state
     new_states = threads.map do |t|
-      if t.unread?
-        t.state - ["unread"]
-      else
-        t.state + ["unread"]
-      end
+      t.has_state?(state) ? (t.state - [state]) : (t.state + [state])
     end
-    modify_thread_state threads, new_states
+
+    modify_thread_value threads, new_states, :value => :state, :setter => :set_thread_state!
+  end
+
+  def toggle_cursor_thread_label label
+    t = cursor_thread or return
+    toggle_thread_labels [t], label
+  end
+
+  def toggle_thread_labels threads, label
+    new_labels = threads.map do |t|
+      t.has_label?(label) ? (t.labels - [label]) : (t.labels + [label])
+    end
+
+    modify_thread_value threads, new_labels, :value => :labels, :setter => :set_labels!
   end
 
   def multi_toggle_tagged threads
@@ -454,73 +366,6 @@ EOS
     else
       BufferManager.flash "No new messages."
     end
-  end
-
-  def toggle_spam
-    t = cursor_thread or return
-    multi_toggle_spam [t]
-  end
-
-  ## both spam and deleted have the curious characteristic that you
-  ## always want to hide the thread after either applying or removing
-  ## that label. in all thread-index-views except for
-  ## label-search-results-mode, when you mark a message as spam or
-  ## deleted, you want it to disappear immediately; in LSRM, you only
-  ## see deleted or spam emails, and when you undelete or unspam them
-  ## you also want them to disappear immediately.
-  def multi_toggle_spam threads
-    undos = threads.map { |t| actually_toggle_spammed t }
-    threads.each { |t| HookManager.run("mark-as-spam", :thread => t) }
-    UndoManager.register "marking/unmarking  #{threads.size.pluralize 'thread'} as spam",
-                         undos, lambda { regen_text }, lambda { threads.each { |t| Index.save_thread t } }
-    regen_text
-    threads.each { |t| Index.save_thread t }
-  end
-
-  def toggle_deleted
-    t = cursor_thread or return
-    multi_toggle_deleted [t]
-  end
-
-  ## see comment for multi_toggle_spam
-  def multi_toggle_deleted threads
-    undos = threads.map { |t| actually_toggle_deleted t }
-    UndoManager.register "deleting/undeleting #{threads.size.pluralize 'thread'}",
-                         undos, lambda { regen_text }, lambda { threads.each { |t| Index.save_thread t } }
-    regen_text
-    threads.each { |t| Index.save_thread t }
-  end
-
-  def kill
-    t = cursor_thread or return
-    multi_kill [t]
-  end
-
-  def flush_index
-    @flush_id = BufferManager.say "Flushing index..."
-    Index.save_index
-    BufferManager.clear @flush_id
-  end
-
-  ## m-m-m-m-MULTI-KILL
-  def multi_kill threads
-    UndoManager.register "killing #{threads.size.pluralize 'thread'}" do
-      threads.each do |t|
-        t.remove_label :killed
-        add_or_unhide t.first
-        Index.save_thread t
-      end
-      regen_text
-    end
-
-    threads.each do |t|
-      t.apply_label :killed
-      hide_thread t
-    end
-
-    regen_text
-    BufferManager.flash "#{threads.size.pluralize 'thread'} killed."
-    threads.each { |t| Index.save_thread t }
   end
 
   def toggle_tagged
@@ -560,8 +405,8 @@ EOS
     user_labels = @context.input.ask_for_labels :label, "Labels for thread: ", modifyl, @hidden_labels
     return unless user_labels
 
-    modify_thread_labels thread, keepl + user_labels, :desc => "changing thread labels"
-    @context.labels.prune! # why not?
+    modify_thread_value [thread], [keepl + user_labels], :value => :labels, :setter => :set_labels!, :desc => "changing thread labels"
+    @context.labels.prune! # a convenient time to do this
   end
 
   def multi_edit_labels threads
@@ -649,20 +494,6 @@ EOS
   end
 
 protected
-
-  def add_or_unhide m
-    @ts_mutex.synchronize do
-      if (is_relevant?(m) || @ts.is_relevant?(m)) && !@ts.contains?(m)
-        @ts.load_thread_for_message m, @load_thread_opts
-      end
-
-      @hidden_threads.delete @ts.thread_for(m)
-    end
-
-    update
-  end
-
-  def thread_containing m; @ts_mutex.synchronize { @ts.thread_for m } end
 
   ## used to tag threads by query. this can be made a lot more sophisticated,
   ## but for right now we'll do the obvious this.
