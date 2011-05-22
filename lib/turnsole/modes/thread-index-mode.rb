@@ -190,7 +190,7 @@ EOS
     old_thread, index = @threads.find_with_index { |x| x.thread_id == new_thread.thread_id }
 
     if old_thread # we have this thread currently
-      if is_relevant?(old_thread) == false # BUT it is no longer relevant
+      if is_relevant?(new_thread) == false # BUT it is no longer relevant
         @threads.delete_at index
         regen_text!
       else # we will keep the thread and just update the thread from the server
