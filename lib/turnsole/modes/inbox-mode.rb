@@ -8,8 +8,7 @@ class InboxMode < ThreadIndexMode
   end
 
   def initialize context
-    super context, "~inbox", %w(inbox)
-
+    super context, "~inbox -~deleted -~spam -~muted", %w(inbox)
 
     ## label-list-mode wants to be able to raise us if the user selects
     ## the "inbox" label, so we need to keep our singletonness around
@@ -23,7 +22,7 @@ class InboxMode < ThreadIndexMode
 
   def killable?; false; end
 
-  def is_relevant? t; t.has_label?("inbox") end
+  def is_relevant? t; t.has_label?("inbox") && !t.has_label?("spam") && !t.has_label?("muted") end
 
   def archive
     return unless cursor_thread
