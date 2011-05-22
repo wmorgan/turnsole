@@ -25,7 +25,7 @@ class Input
 
   ## assumes we're running in the context of a fiber
   def asking_getchar
-    Fiber.yield
+    Fiber.yield :input
   end
 
   def handle input_char

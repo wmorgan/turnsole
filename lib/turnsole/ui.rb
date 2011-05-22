@@ -65,22 +65,11 @@ class UI
       @context.screen.minibuf.clear_flash!
       key = args.first
 
-      if @input_fibers.empty?
-        ## spawn a fiber
-        f = spawn_fiber { @context.input.handle key }
-        @input_fibers.push f
-      end
-
-      fiber = @input_fibers.last
-      fiber.resume key
-      ## now remove it if it's done
-      @input_fibers.delete fiber unless fiber.alive?
+      fiber = @input_fibers.pop || (spawn_fiber { @context.input.handle key })
+      resume_fiber fiber, key
     when :server_response
       results, fiber = args
-      fiber.resume results
-      ## this guy might (probably!) is on the input thread stack, having been
-      ## triggered by an input. so let's remove him from there if he's done.
-      @input_fibers.delete fiber unless fiber.alive?
+      resume_fiber fiber, results
     when :broadcast
       event, *args = args
       method = "handle_#{event}_update"
@@ -105,6 +94,16 @@ class UI
         warn [message, e.backtrace[0..10].map { |l| "  "  + l }].flatten.join("\n")
         @context.screen.minibuf.flash "Error: #{e.message}. See log for details."
       end
+    end
+  end
+
+  def resume_fiber fiber, val
+    what = fiber.resume val
+    if fiber.alive?
+      @input_fibers.push fiber if what == :input
+    else
+      ## he might be on the input stack still, so delete him if so
+      @input_fibers.delete fiber
     end
   end
 
