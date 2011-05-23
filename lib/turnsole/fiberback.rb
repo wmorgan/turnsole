@@ -9,28 +9,34 @@ rescue LoadError
 
   class Fiber
     def initialize
-      @enter, args = callcc { |c| [c, nil] }
+      args, ex, @enter = callcc { |c| [nil, nil, c] }
       unless @enter
-        *v = yield(*args)
-        @exit.call nil, v
+        begin
+          *v = yield(*args)
+          @exit.call v, nil
+        rescue Exception => e
+          @exit.call [], e
+        end
       end
     end
 
     def yield(*a)
-      @enter, args = callcc { |c| [c, nil] }
+      args, ex, @enter = callcc { |c| [nil, nil, c] }
       if @enter
-        @exit.call nil, a
+        @exit.call a, ex
       else
+        raise ex if ex
         args.size < 2 ? args.first : args
       end
     end
 
     def resume(*a)
       Fiber.current = self
-      @exit, args = callcc { |c| [c, nil] }
+      args, ex, @exit = callcc { |c| [nil, nil, c] }
       if @exit
-        @enter.call nil, a
+        @enter.call a, ex
       else
+        raise ex if ex
         args.size < 2 ? args.first : args
       end
     end
