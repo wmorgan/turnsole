@@ -8,8 +8,6 @@ begin
 rescue LoadError
 
   class Fiber
-    class << self; attr_accessor :current end
-
     def initialize
       @enter, args = callcc { |c| [c, nil] }
       unless @enter
@@ -37,11 +35,15 @@ rescue LoadError
       end
     end
 
-    def alive?; !!@enter end
+    def alive?; @enter end
 
-    def self.yield(*a)
-      raise "no current fiber" unless Fiber.current
-      Fiber.current.yield(*a)
+    class << self
+      attr_accessor :current
+
+      def yield(*a)
+        raise "no current fiber" unless current
+        current.yield(*a)
+      end
     end
   end
 end
