@@ -36,7 +36,7 @@ class Tagger
       if @mode.respond_to? tagged_sym
         @mode.send tagged_sym, @tagged
       else
-        @context.screen.minibuf.flash "That command cannot be applied to multiple #{plural_noun}."
+        @context.screen.minibuf.flash "That command cannot be applied to multiple #{@plural_noun}."
       end
     else
       @context.screen.minibuf.flash "Unknown command #{c.to_character}."

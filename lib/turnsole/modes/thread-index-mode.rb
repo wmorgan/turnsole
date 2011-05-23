@@ -212,7 +212,7 @@ EOS
     end
   end
 
-  def modify_thread_value threads, new_values, opts={}
+  def modify_thread_values threads, new_values, opts={}
     value = opts[:value] or raise ArgumentError, "need :value"
     setter = opts[:setter] or raise ArgumentError, "need :setter"
     desc = opts[:desc] || "operation"
@@ -229,37 +229,6 @@ EOS
         new_thread = @context.client.send setter, thread.thread_id, old_value
         @context.ui.broadcast :thread, new_thread
       end
-    end
-  end
-
-  def modify_thread_labels threads, new_labels_by_thread, opts={}
-    threads = Array threads
-    new_labels_by_thread = Array [new_labels_by_thread]
-
-    old_labels = threads.map(&:labels)
-    threads.zip(new_labels_by_thread).map { |thread, labels| thread.labels = labels }
-
-    threads.each do |thread|
-      @context.client.set_labels! thread.thread_id, thread.labels # sync to server
-      @context.ui.broadcast self, :thread, thread
-      drop_thread thread if is_relevant?(thread) == false # nil means dunno
-    end
-    regen_text!
-
-    to_undo(opts[:desc] || "operation") do
-      threads.zip(old_labels).each { |thread, labels| thread.labels = labels }
-      threads.each do |thread|
-        @context.client.set_labels! thread.thread_id, thread.labels # sync to server
-        @context.ui.broadcast self, :thread, thread
-        case is_relevant?(thread)
-        when false
-          drop_thread thread
-        when true
-          add_thread thread
-        end
-      end
-
-      regen_text!
     end
   end
 
@@ -320,7 +289,7 @@ EOS
       t.has_state?(state) ? (t.state - [state]) : (t.state + [state])
     end
 
-    modify_thread_value threads, new_states, :value => :state, :setter => :set_thread_state!
+    modify_thread_values threads, new_states, :value => :state, :setter => :set_thread_state!
   end
 
   def toggle_cursor_thread_label label
@@ -333,7 +302,7 @@ EOS
       t.has_label?(label) ? (t.labels - [label]) : (t.labels + [label])
     end
 
-    modify_thread_value threads, new_labels, :value => :labels, :setter => :set_labels!
+    modify_thread_values threads, new_labels, :value => :labels, :setter => :set_labels!
   end
 
   def multi_toggle_tagged threads
@@ -405,47 +374,38 @@ EOS
     user_labels = @context.input.ask_for_labels :label, "Labels for thread: ", modifyl, @hidden_labels
     return unless user_labels
 
-    modify_thread_value [thread], [keepl + user_labels], :value => :labels, :setter => :set_labels!, :desc => "changing thread labels"
-    @context.labels.prune! # a convenient time to do this
+    modify_thread_labels [thread], [keepl + user_labels]
   end
 
   def multi_edit_labels threads
-    user_labels = BufferManager.ask_for_labels :labels, "Add/remove labels (use -label to remove): ", [], @hidden_labels
+    user_labels = @context.input.ask_for_labels :labels, "Add/remove labels (use -label to remove): ", [], @hidden_labels
     return unless user_labels
 
-    user_labels.map! { |l| (l.to_s =~ /^-/)? [l.to_s.gsub(/^-?/, '').to_sym, true] : [l, false] }
-    hl = user_labels.select { |(l,_)| @hidden_labels.member? l }
-    unless hl.empty?
-      BufferManager.flash "'#{hl}' is a reserved label!"
-      return
-    end
-
-    old_labels = threads.map { |t| t.labels.dup }
-
-    threads.each do |t|
-      user_labels.each do |(l, to_remove)|
-        if to_remove
-          t.remove_label l
-        else
-          t.apply_label l
-          LabelManager << l
-        end
+    user_labels = user_labels.map do |l|
+      if @hidden_labels.member? l
+        @context.screen.minibuf.flash "'#{hl}' is a reserved label!"
+        return
       end
-      UpdateManager.relay self, :labeled, t.first
-    end
 
-    regen_text
-
-    UndoManager.register "labeling #{threads.size.pluralize 'thread'}" do
-      threads.zip(old_labels).map do |t, old_labels|
-        t.labels = old_labels
-        UpdateManager.relay self, :labeled, t.first
-        Index.save_thread t
+      if l =~ /^-(.+)$/
+        [$1, true]
+      else
+        [l, false]
       end
-      regen_text
     end
 
-    threads.each { |t| Index.save_thread t }
+    thread_labels = threads.map do |t|
+      user_labels.inject(t.labels) do |labels, (l, remove)|
+        remove ? (labels - l) : (labels + l)
+      end
+    end
+
+    modify_thread_labels threads, thread_labels
+  end
+
+  def modify_thread_labels threads, thread_labels
+    modify_thread_values threads, thread_labels, :value => :labels, :setter => :set_labels!, :desc => "changing thread labels"
+    @context.labels.prune! # a convenient time to do this
   end
 
   def reply type_arg=nil

@@ -18,7 +18,7 @@ module CanUndo
       block.call
       @context.screen.minibuf.flash "Undid #{desc}."
     else
-      @context.screen.minibuf.flash "Nothing to undo!"
+      @context.screen.minibuf.flash "Nothing left to undo!"
     end
   end
 end

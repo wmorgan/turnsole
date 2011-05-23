@@ -143,10 +143,9 @@ class Input
 
   ## returns an array of labels
   def ask_for_labels domain, question, default_labels, forbidden_labels=[]
-    ## reload the labels. probably will be too slow to actually be useful
-    ## here, but i'm not sure there's a better place for it.
-    @context.labels.load!
+    @context.labels.load! # too slow to put in here?
 
+    default_labels = Set.new default_labels
     default_labels -= @context.labels.reserved_labels
     default = default_labels.sort.join " "
 
