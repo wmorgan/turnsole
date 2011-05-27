@@ -213,7 +213,12 @@ EOS
   def toggle_detailed_header
     m = @message_lines[curpos] or return
     @layouts[m].state = (@layouts[m].state == :detailed ? :open : :detailed)
-    regen_text!
+
+    if !m.fake? && @messages[m.message_id].nil?
+      receive_message @context.client.load_message(m.message_id)
+    else
+      regen_text!
+    end
   end
 
   def reply type_arg=nil
