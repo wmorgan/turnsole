@@ -128,7 +128,7 @@ EOS
   ## - @person_lines: a map from row #s to Person objects
 
   def initialize context, threadinfo, parent_mode
-    super(context)
+    super context
     @threadinfo = threadinfo
     @context = context
 
@@ -153,6 +153,8 @@ EOS
     @chunk_lines = []
     @message_lines = []
     @person_lines = []
+
+    @context.ui.add_event_listener self
   end
 
   def num_lines; @text.length end
@@ -163,12 +165,15 @@ EOS
   end
 
   def cleanup!
-    ## mark as read any messages we have acquired
+    @context.ui.remove_event_listener self
 
+    ## mark as read any messages we have acquired
     ## special case: if everyone's unread, use the per-thread setter
     threadinfo = if @messages.values.all? { |m| m.unread? }
       @context.client.set_thread_state! @threadinfo.thread_id, @threadinfo.state - ["unread"]
-    else # otherwise, set each message individually
+
+    ## otherwise, set each message individually
+    else
       @messages.values.each do |m|
         next unless m.unread?
         @context.client.set_state! m.message_id, (m.state - ["unread"])
@@ -332,25 +337,39 @@ EOS
 
   def toggle_starred
     m = @message_lines[curpos] or return
-    toggle_label m, :starred
+    toggle_state m, "starred"
   end
 
   def toggle_new
     m = @message_lines[curpos] or return
-    toggle_label m, :unread
+    toggle_state m, "unread"
   end
 
-  def toggle_label m, label
-    if m.has_label? label
-      m.remove_label label
+  def toggle_state m, state
+    new_state = if m.has_state? state
+      m.state - [state]
     else
-      m.add_label label
+      m.state + [state]
     end
-    ## TODO: don't recalculate EVERYTHING just to add a stupid little
-    ## star to the display
-    update
-    UpdateManager.relay self, :single_message_labeled, m
-    Index.save_thread @thread
+
+    messageinfo = @context.client.set_state! m.message_id, new_state
+    @context.ui.broadcast :message, messageinfo
+
+    ## threadinfo may have changed as well
+    threadinfo = @context.client.threadinfo @threadinfo.thread_id
+    @context.ui.broadcast :thread, threadinfo
+  end
+
+  def handle_message_update new_message
+    @thread.each_with_index do |(message, depth), i|
+      if message.message_id == new_message.message_id
+        @thread[i] = [new_message, depth]
+        @layouts[new_message] = @layouts[message] # hacky
+        @layouts.delete message # hacky
+        regen_text!
+        break
+      end
+    end
   end
 
   ## called when someone presses enter when the cursor is highlighting
@@ -856,7 +875,7 @@ private
 
     open_widget = [layout.color, (layout.state == :closed ? "+ " : "- ")]
     new_widget = [layout.color, (message.unread? ? "N" : " ")]
-    starred_widget = message.starred? ? [star_color, "*"] : [layout.color, " "]
+    starred_widget = message.starred? ? [layout.star_color, "*"] : [layout.color, " "]
     attach_widget = [layout.color, (message.attachment? ? "@" : " ")]
 
     full_message = @messages[message.message_id] # can be nil if not yet loaded
@@ -892,8 +911,8 @@ private
       headers << ["Date", "#{message.date.strftime DATE_FORMAT} (#{message.date.to_nice_distance_s})"]
       headers << ["Subject", message.subject]
 
-      unless message.state.empty?
-        headers << ["State", message.state.map { |x| x.to_s }.sort.join(', ')]
+      unless @threadinfo.labels.empty?
+        headers << ["Labels", @threadinfo.labels.sort.join(', ')]
       end
       #if parent
         #headers["In reply to"] = "#{parent.from.mediumname}'s message of #{parent.date.strftime DATE_FORMAT}"
