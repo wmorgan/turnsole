@@ -60,9 +60,9 @@ class Client
     ThreadSummary.new result
   end
 
-  ## a couple guys we just relay as is
-  %w(set_state! set_thread_state! message_part).each do |m|
-    define_method(m) { |*a| perform(m.to_sym, *a) }
+  def set_state! message_id, state
+    result = perform :set_state!, message_id, state
+    MessageSummary.new result
   end
 
   def set_thread_state! thread_id, state
@@ -70,7 +70,12 @@ class Client
     ThreadSummary.new result
   end
 
-  ## a couple guys we relay and Set-ify the results
+  ## some methods we relay without change
+  %w(message_part).each do |m|
+    define_method(m) { |*a| perform(m.to_sym, *a) }
+  end
+
+  ## some methods we relay and set-ify the results
   %w(contacts labels prune_labels!).each do |m|
     define_method(m) { Set.new perform(m.to_sym) }
   end

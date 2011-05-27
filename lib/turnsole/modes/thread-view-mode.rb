@@ -164,12 +164,19 @@ EOS
 
   def cleanup!
     ## mark as read any messages we have acquired
-    @messages.values.each do |m|
-      next unless m.unread?
-      @context.client.set_state! m.message_id, (m.state - ["unread"])
-      @context.ui.broadcast :message_state, m.message_id
+
+    ## special case: if everyone's unread, use the per-thread setter
+    threadinfo = if @messages.values.all? { |m| m.unread? }
+      @context.client.set_thread_state! @threadinfo.thread_id, @threadinfo.state - ["unread"]
+    else # otherwise, set each message individually
+      @messages.values.each do |m|
+        next unless m.unread?
+        @context.client.set_state! m.message_id, (m.state - ["unread"])
+        @context.ui.broadcast :message_state, m.message_id
+      end
+      @context.client.threadinfo @threadinfo.thread_id
     end
-    threadinfo = @context.client.threadinfo @threadinfo.thread_id
+
     ## broadcast new version out to everyone
     @context.ui.broadcast :thread, threadinfo
   end
