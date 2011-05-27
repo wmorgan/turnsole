@@ -1,6 +1,9 @@
 module Turnsole
 
 class ThreadViewMode < LineCursorMode
+  include CanUndo
+  include ModeHelper
+
   ## this holds all info we need to lay out a message
   class MessageLayout
     attr_accessor :top, :bot, :prev, :next, :depth, :width, :state, :color, :star_color, :orig_new, :toggled_state
@@ -116,6 +119,8 @@ EOS
       kk.add :unread_and_prev, "Mark this thread as unread, kill buffer, and view previous", 'N'
       kk.add :do_nothing_and_prev, "Kill buffer, and view previous", 'n', ']'
     end
+
+    k.add :undo!, "Undo the previous action", 'u'
   end
 
   ## there are a couple important instance variables we hold to format
@@ -318,21 +323,14 @@ EOS
   end
 
   def edit_labels
-    old_labels = @thread.labels
-    reserved_labels = old_labels.select { |l| LabelManager::RESERVED_LABELS.include? l }
-    new_labels = BufferManager.ask_for_labels :label, "Labels for thread: ", @thread.labels
+    old_labels = @threadinfo.labels
+    speciall = @context.labels.reserved_labels
+    keepl, modifyl = old_labels.partition { |t| speciall.member? t }.map { |x| Set.new x }
 
-    return unless new_labels
-    @thread.labels = Set.new(reserved_labels) + new_labels
-    new_labels.each { |l| LabelManager << l }
-    update
-    UpdateManager.relay self, :labeled, @thread.first
-    Index.save_thread @thread
-    UndoManager.register "labeling thread" do
-      @thread.labels = old_labels
-      Index.save_thread @thread
-      UpdateManager.relay self, :labeled, @thread.first
-    end
+    user_labels = @context.input.ask_for_labels :label, "Labels for thread: ", modifyl, @hidden_labels
+    return unless user_labels
+
+    modify_thread_labels [@threadinfo], [keepl + user_labels]
   end
 
   def toggle_starred
@@ -369,6 +367,13 @@ EOS
         regen_text!
         break
       end
+    end
+  end
+
+  def handle_thread_update new_thread
+    if new_thread.thread_id == @threadinfo.thread_id
+      @threadinfo = new_thread
+      regen_text!
     end
   end
 
