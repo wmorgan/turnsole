@@ -5,6 +5,7 @@ module Turnsole
 class ThreadIndexMode < LineCursorMode
   include LogsStuff
   include CanUndo
+  include ModeHelper
 
   DATE_WIDTH = Time::TO_NICE_S_MAX_LEN
   MIN_FROM_WIDTH = 15
@@ -212,26 +213,6 @@ EOS
     end
   end
 
-  def modify_thread_values threads, new_values, opts={}
-    value = opts[:value] or raise ArgumentError, "need :value"
-    setter = opts[:setter] or raise ArgumentError, "need :setter"
-    desc = opts[:desc] || "operation"
-
-    old_values = threads.map(&value)
-
-    threads.zip(new_values).each do |thread, new_value|
-      new_thread = @context.client.send setter, thread.thread_id, new_value
-      @context.ui.broadcast :thread, new_thread
-    end
-
-    to_undo desc do
-      threads.zip(old_values).each do |thread, old_value|
-        new_thread = @context.client.send setter, thread.thread_id, old_value
-        @context.ui.broadcast :thread, new_thread
-      end
-    end
-  end
-
   ## overwrite me! takes a thread that has just been updated. should return
   ## false if the thread does not belong in this view, true if it does, and
   ## nil if it's unknown.
@@ -401,11 +382,6 @@ EOS
     end
 
     modify_thread_labels threads, thread_labels
-  end
-
-  def modify_thread_labels threads, thread_labels
-    modify_thread_values threads, thread_labels, :value => :labels, :setter => :set_labels!, :desc => "changing thread labels"
-    @context.labels.prune! # a convenient time to do this
   end
 
   def reply type_arg=nil

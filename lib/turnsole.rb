@@ -36,6 +36,7 @@ require "turnsole/undo"
 require "turnsole/crypto"
 require "turnsole/contacts"
 require "turnsole/horizontal-selector"
+require "turnsole/mode-helper"
 
 require "turnsole/modes/scroll-mode"
 require "turnsole/modes/text-mode"
