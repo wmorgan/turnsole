@@ -105,8 +105,11 @@ begin
   ## wrappers.
   ##
   ## it took me a long time to figure this out.
-  trap("TERM") { |x| Thread.new { turnsole.ui.quit! } }
-  trap("WINCH") { |x| Thread.new { turnsole.ui.sigwinch_happened! } }
+  ##
+  ## additionally, in ruby 1.8, you have to have a sleep in there for this
+  ## to work. not sure why. it took a long time to figure that out too.
+  trap("TERM") { |x| Thread.new { sleep 0.1; turnsole.ui.quit! } }
+  trap("WINCH") { |x| Thread.new { sleep 0.1; turnsole.ui.sigwinch_happened! } }
 
   log.remove_sink $stderr
   turnsole.screen.start_cursing!

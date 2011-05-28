@@ -166,7 +166,7 @@ EOS
   def exists? title; @bufs_by_title.member? title end
 
   def resize_screen!
-    ## this magic makes Ncurses get the new size of the screen
+    ## this magic apparently makes Ncurses get the new size of the screen
     Ncurses.endwin
     Ncurses.stdscr.keypad 1
     Ncurses.curs_set 0
@@ -190,7 +190,6 @@ EOS
     buf_rows = Ncurses.rows - [@minibuf.height, 1].max - 1
     buf_cols = Ncurses.cols
 
-    return unless buf_rows > 0 && buf_cols > 0
     return unless buf_rows > 4 && buf_cols > 30 # don't draw this small
 
     buf = @buffers.last

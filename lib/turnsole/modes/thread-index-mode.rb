@@ -425,9 +425,9 @@ EOS
     @interrupt_search = true
   end
 
-  def resize rows, cols
-    regen_text
+  def set_size rows, cols
     super
+    regen_text!
   end
 
 protected

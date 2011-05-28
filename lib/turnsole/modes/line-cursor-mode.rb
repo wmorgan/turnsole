@@ -23,11 +23,6 @@ class LineCursorMode < ScrollMode
     super
   end
 
-  def draw
-    super
-    set_status
-  end
-
   def load_more_if_necessary!
     if (topline + buffer.content_height > num_lines) ||         # there's empty space to fill
       @curpos >= num_lines - [buffer.content_height / 2, 1].max # the cursor is near the bottom

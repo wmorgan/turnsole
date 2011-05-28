@@ -58,7 +58,7 @@ class UI
 
       @input_fibers.push f
       f.resume
-      @input_fibers.delete fiber unless fiber.alive?
+      @input_fibers.delete f unless f.alive?
     when :sigwinch
       @context.screen.resize_screen!
     when :keypress
