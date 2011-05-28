@@ -102,9 +102,10 @@ EOS
   def log; @context.log end
 
   def schedule_more num_threads
-    return if @last_schedule_more_size == @threads.size
-    receive_threads @context.client.search(query, num_threads, @threads.size)
-    @last_schedule_more_size = @threads.size
+    return if @last_schedule_more_size == 0
+    threads = @context.client.search query, num_threads, @threads.size
+    @last_schedule_more_size = threads.size
+    receive_threads threads
   end
 
   def reload
@@ -327,7 +328,7 @@ EOS
 
   def toggle_tagged_all
     @threads.each { |t| @tags.toggle t }
-    regen_text
+    regen_text!
   end
 
   def tag_matching
@@ -377,7 +378,7 @@ EOS
 
     thread_labels = threads.map do |t|
       user_labels.inject(t.labels) do |labels, (l, remove)|
-        remove ? (labels - l) : (labels + l)
+        remove ? (labels - [l]) : (labels + [l])
       end
     end
 
