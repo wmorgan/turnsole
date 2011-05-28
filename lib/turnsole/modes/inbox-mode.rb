@@ -14,8 +14,6 @@ class InboxMode < ThreadIndexMode
     ## the "inbox" label, so we need to keep our singletonness around
     raise "only can have one inbox" if defined?(@@instance)
     @@instance = self
-
-    @index_size = 0 # loaded later
   end
 
   def self.instance; @@instance; end
@@ -23,12 +21,6 @@ class InboxMode < ThreadIndexMode
   def killable?; false; end
 
   def is_relevant? t; t.has_label?("inbox") && !t.has_label?("spam") && !t.has_label?("muted") end
-
-  ## we'll plug this in here... not sure if it's a good idea or not.
-  def receive_threads(*a)
-    super(*a)
-    @index_size = @context.client.size
-  end
 
   def read_and_archive
     multi_read_and_archive [cursor_thread]
@@ -58,6 +50,12 @@ class InboxMode < ThreadIndexMode
   def status_bar_text
     super + "    #{@index_size} messages in index"
   end
+
+  def load!
+    @index_size ||= @context.client.size
+    super
+  end
+
 end
 
 end
