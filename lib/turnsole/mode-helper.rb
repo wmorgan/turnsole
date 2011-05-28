@@ -19,9 +19,15 @@ module ModeHelper
     end
   end
 
-  def modify_thread_labels threads, thread_labels
-    modify_thread_values threads, thread_labels, :value => :labels, :setter => :set_labels!, :desc => "changing thread labels"
+  def modify_thread_labels threads, thread_labels, opts={}
+    desc = opts[:desc] || "changing thread labels"
+    modify_thread_values threads, thread_labels, :value => :labels, :setter => :set_labels!, :desc => desc
     @context.labels.prune! # a convenient time to do this
+  end
+
+  def modify_thread_state threads, thread_state, opts={}
+    desc = opts[:desc] || "changing thread state"
+    modify_thread_values threads, thread_state, :value => :state, :setter => :set_thread_state!, :desc => desc
   end
 
 end

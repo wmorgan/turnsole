@@ -270,7 +270,7 @@ EOS
       t.has_state?(state) ? (t.state - [state]) : (t.state + [state])
     end
 
-    modify_thread_values threads, new_states, :value => :state, :setter => :set_thread_state!
+    modify_thread_state threads, new_states
   end
 
   def toggle_cursor_thread_label label
@@ -283,7 +283,7 @@ EOS
       t.has_label?(label) ? (t.labels - [label]) : (t.labels + [label])
     end
 
-    modify_thread_values threads, new_labels, :value => :labels, :setter => :set_labels!
+    modify_thread_labels threads, new_labels
   end
 
   def multi_toggle_tagged threads
