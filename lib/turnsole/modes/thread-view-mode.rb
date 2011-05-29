@@ -23,6 +23,7 @@ class ThreadViewMode < LineCursorMode
 
     def initialize chunk
       @state = chunk.expandable? ? chunk.initial_state : :closed
+      @wrapped = true
     end
   end
 
@@ -962,8 +963,9 @@ private
     if chunk.inlineable?
       lines = chunk.lines
       if layout.wrapped
-        config_width = 72 # TODO figure out what to do with this
-        width = config_width.clamp(0, buffer.content_width)
+        config_width = 78 # TODO figure out what to do with this
+        #width = config_width.clamp(0, buffer.content_width)
+        width = buffer.content_width.clamp(0, config_width)
         lines = lines.map { |l| l.chomp.wrap width }.flatten
       end
       lines.map { |line| [[chunk.color, "#{prefix}#{line}"]] }
