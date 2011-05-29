@@ -74,6 +74,7 @@ class Turnsole # this is passed around as @context to many things
     @logfile = File.open LOG_FN, "a"
     @logger = Logger.new
     @logger.add_sink @logfile
+    @hooks = HookManager.new HOOK_DIR, self
   end
 
   def log; @logger end # for my own logging
@@ -85,9 +86,8 @@ No return value.
 EOS
 
   HookManager.register "shutdown", <<EOS
-Executes when sup is shutting down. May be run when sup is crashing,
-so don't do anything too important. Run before the label, contacts,
-and people are saved.
+Executes at shutdown. May be run when Turnsole is crashing, so don't do
+anything too important.
 No variables.
 No return value.
 EOS
@@ -95,7 +95,6 @@ EOS
   attr_reader :hooks, :colors, :ui, :screen, :input, :global, :client, :accounts, :labels, :crypto, :contacts
   def setup! override_url
     @encoding = detect_encoding
-    @hooks = HookManager.new HOOK_DIR, self
     @colors = Colormap.new COLOR_FN, self
     @screen = Screen.new self
     @ui = UI.new self

@@ -56,9 +56,9 @@ module Turnsole
 module Chunk
   class Attachment
     HookManager.register "mime-decode", <<EOS
-Decodes a MIME attachment into text form. The text will be displayed
-directly in Sup. For attachments that you wish to use a separate program
-to view (e.g. images), you should use the mime-view hook instead.
+Decodes a MIME attachment into text form. The text will be displayed directly
+in Turnsole. For attachments that you wish to use a separate program to view
+(e.g. images), you should use the mime-view hook instead.
 
 Variables:
    content_type: the content-type of the attachment
@@ -75,10 +75,10 @@ EOS
 Views a non-text MIME attachment. This hook allows you to run
 third-party programs for attachments that require such a thing (e.g.
 images). To instead display a text version of the attachment directly in
-Sup, use the mime-decode hook instead.
+Turnsole, use the mime-decode hook instead.
 
 Note that by default (at least on systems that have a run-mailcap command),
-Sup uses the default mailcap handler for the attachment's MIME type. If
+Turnsole uses the default mailcap handler for the attachment's MIME type. If
 you want a particular behavior to be global, you may wish to change your
 mailcap instead.
 

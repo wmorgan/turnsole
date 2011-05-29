@@ -55,6 +55,8 @@ EOS
   end
 
   attr_reader :focus_buf, :minibuf, :buffers
+  bool_reader :cursing
+
   def log; @context.log end
 
   def mark_dirty!; @dirty = true end

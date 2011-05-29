@@ -60,7 +60,7 @@ end
 turnsole = Turnsole::Turnsole.new
 
 if opts[:list_hooks]
-  turnsole.hookmanager.dump_hooks $stdout
+  turnsole.hooks.dump_hooks $stdout
   exit
 end
 

@@ -1,17 +1,17 @@
 module Turnsole
 
 class HookManager
-  class HookContext
-    def initialize name
-      @__say_id = nil
+  class HookEnv
+    def initialize name, context
       @__name = name
+      @__context = context
+      @__say_id = nil
       @__cache = {}
     end
 
     def say s
-      if BufferManager.instantiated?
-        @__say_id = BufferManager.say s, @__say_id
-        BufferManager.draw_screen
+      if @context.screen.cursing?
+        @__say_id = @context.screen.minibuf.say s, @__say_id
       else
         log s
       end
@@ -22,8 +22,8 @@ class HookManager
     end
 
     def ask_yes_or_no q
-      if BufferManager.instantiated?
-        BufferManager.ask_yes_or_no q
+      if @context.screen.cursing?
+        @context.input.ask_yes_or_no q
       else
         print q
         gets.chomp.downcase == 'y'
@@ -53,7 +53,7 @@ class HookManager
         end
       end
       ret = eval __hook, __binding, __filename
-      BufferManager.clear @__say_id if @__say_id
+      @context.screen.minibuf.clear @__say_id if @__say_id
       @__cache = {}
       ret
     end
@@ -69,7 +69,7 @@ class HookManager
   def initialize dir, context
     @dir = dir
     @hooks = {}
-    @contexts = {}
+    @envs = {}
     @tags = {}
     @context = context
 
@@ -82,17 +82,17 @@ class HookManager
 
   def run name, locals={}
     hook = hook_for(name) or return
-    context = @contexts[hook] ||= HookContext.new(name)
+    env = @envs[hook] ||= HookEnv.new(name, context)
 
     result = nil
     fn = fn_for name
     begin
-      result = context.__run hook, fn, locals
+      result = env.__run hook, fn, locals
     rescue Exception => e
       log "error running #{fn}: #{e.message}"
       log e.backtrace.join("\n")
       @hooks[name] = nil # disable it
-      BufferManager.flash "Error running hook: #{e.message}" if BufferManager.instantiated?
+      @context.screen.minibuf.flash "Error running hook: #{e.message}" if @context.screen.cursing?
     end
     result
   end
