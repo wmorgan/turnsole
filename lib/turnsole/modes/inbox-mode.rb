@@ -20,7 +20,7 @@ class InboxMode < ThreadIndexMode
 
   def killable?; false; end
 
-  def is_relevant? t; t.has_label?("inbox") && !t.has_label?("spam") && !t.has_label?("muted") end
+  def is_relevant? t; t.has_label?("inbox") && !t.has_label?("spam") && !t.has_label?("muted") && !t.has_label?("deleted") end
 
   def read_and_archive
     multi_read_and_archive [cursor_thread]

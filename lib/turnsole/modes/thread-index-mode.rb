@@ -262,8 +262,8 @@ EOS
 
   def toggle_cursor_thread_state state
     t = cursor_thread or return
-    toggle_thread_states [t], state
-    cursor_down
+    new_threads = toggle_thread_states [t], state
+    cursor_down if is_relevant?(new_threads.first)
   end
 
   def toggle_thread_states threads, state
@@ -276,7 +276,8 @@ EOS
 
   def toggle_cursor_thread_label label
     t = cursor_thread or return
-    toggle_thread_labels [t], label
+    new_threads = toggle_thread_labels [t], label
+    cursor_down if is_relevant?(new_threads.first)
   end
 
   def toggle_thread_labels threads, label
