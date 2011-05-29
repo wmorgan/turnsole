@@ -31,13 +31,8 @@ Variables:
 EOS
 
   register_keymap do |k|
-    k.add :load_threads, "Load #{LOAD_MORE_THREAD_NUM} more threads", 'M'
-    k.add_multi "Load all threads (! to confirm) :", '!' do |kk|
-      kk.add :load_all_threads, "Load all threads (may list a _lot_ of threads)", '!'
-    end
     k.add :refine_search, "Refine search", '|'
-    k.add :cancel_search, "Cancel current search", :ctrl_g
-    k.add :reload, "Refresh view", '@'
+    k.add :reload, "Reload", '@'
     k.add :toggle_archived, "Toggle archived status", 'a'
     k.add :toggle_starred, "Star or unstar all messages in thread", '*'
     k.add :toggle_new, "Toggle new/read status of all messages in thread", 'N'
@@ -46,7 +41,6 @@ EOS
     k.add :toggle_spam, "Mark/unmark thread as spam", 'S'
     k.add :toggle_deleted, "Delete/undelete thread", 'd'
     k.add :toggle_muted, "Mute thread (never to be seen in inbox again)", '&'
-    k.add :flush_index, "Flush all changes now", '$'
     k.add :jump_to_next_new, "Jump to next new thread", :tab
     k.add :reply, "Reply to latest message in a thread", 'r'
     k.add :reply_all, "Reply to all participants of the latest message in a thread", 'G'
@@ -405,25 +399,12 @@ EOS
     ForwardMode.spawn_nicely :message => m
   end
 
-  def load_n_threads_background n=LOAD_MORE_THREAD_NUM, opts={}
-    return if @load_thread # todo: wrap in mutex
-    @load_thread = Redwood::reporting_thread("load threads for thread-index-mode") do
-      num = load_n_threads n, opts
-      opts[:when_done].call(num) if opts[:when_done]
-      @load_thread = nil
-    end
-  end
-
   def status
     if (l = lines) == 0
       "line 0 of 0"
     else
       "line #{curpos + 1} of #{l}"
     end
-  end
-
-  def cancel_search
-    @interrupt_search = true
   end
 
   def set_size rows, cols
