@@ -301,16 +301,12 @@ EOS
   end
 
   def jump_to_next_new
-    n = @mutex.synchronize do
-      ((curpos + 1) ... lines).find { |i| @threads[i].has_label? :unread } ||
-        (0 ... curpos).find { |i| @threads[i].has_label? :unread }
-    end
-    if n
-      ## jump there if necessary
+    n = ((curpos + 1) ... @threads.length).find { |i| @threads[i].unread? } || (0 ... curpos).find { |i| @threads[i].unread? }
+    if n # jump there if necessary
       jump_to_line n unless n >= topline && n < botline
       set_cursor_pos n
     else
-      BufferManager.flash "No new messages."
+      @context.screen.minibuf.flash "No new messages."
     end
   end
 
@@ -327,16 +323,17 @@ EOS
   end
 
   def tag_matching
-    query = BufferManager.ask :search, "tag threads matching (regex): "
+    query = @context.input.ask :search, "Tag all threads matching (regex): "
     return if query.nil? || query.empty?
-    query = begin
-      /#{query}/i
+
+    begin
+      query = /#{query}/i
+      @threads.each { |t| @tags.tag t if thread_matches?(t, query) }
+      regen_text!
     rescue RegexpError => e
-      BufferManager.flash "error interpreting '#{query}': #{e.message}"
+      @context.screen.minibuf.flash "Error interpreting '#{query}': #{e.message}"
       return
     end
-    @mutex.synchronize { @threads.each { |t| @tags.tag t if thread_matches?(t, query) } }
-    regen_text
   end
 
   def apply_to_tagged; @tags.apply_to_tagged! end
@@ -417,7 +414,7 @@ protected
   ## used to tag threads by query. this can be made a lot more sophisticated,
   ## but for right now we'll do the obvious this.
   def thread_matches? t, query
-    t.subj =~ query || t.snippet =~ query || t.participants.any? { |x| x.longname =~ query }
+    t.subject =~ query || t.snippet =~ query || t.participants.any? { |x| x.longname =~ query }
   end
 
   def size_widget_for_thread t
