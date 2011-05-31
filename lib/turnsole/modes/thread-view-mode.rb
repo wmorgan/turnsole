@@ -309,9 +309,7 @@ EOS
 
   def search
     p = @person_lines[curpos] or return
-    mode = PersonSearchResultsMode.new [p]
-    BufferManager.spawn "Search for #{p.name}", mode
-    mode.load_threads :num => mode.buffer.content_height
+    SearchResultsMode.spawn_from_query @context, p.email
   end
 
   def compose
