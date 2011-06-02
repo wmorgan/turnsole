@@ -342,13 +342,19 @@ protected
     end
 
     say_id = @context.screen.minibuf.say "Sending message..."
-    @context.client.send_message(m,
-      :callback => lambda do |results|
-        @context.screen.minibuf.flash "Message sent!"
-        @context.screen.kill_buffer buffer
-      end,
-      :ensure => lambda { @context.screen.minibuf.clear say_id }
-      )
+    begin
+      ret = @context.client.send_message m, :labels => %w(inbox)
+      @context.screen.minibuf.flash "Message sent!"
+
+      if ret["thread_id"] # was new, not old...
+        thread = @context.client.threadinfo ret["thread_id"]
+        @context.ui.broadcast :thread, thread # inform everyone
+      end
+
+      @context.screen.kill_buffer buffer
+    ensure
+      @context.screen.minibuf.clear say_id
+    end
   end
 
   def save_as_draft
