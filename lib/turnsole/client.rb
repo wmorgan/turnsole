@@ -71,25 +71,13 @@ class Client
   end
 
   ## some methods we relay without change
-  %w(message_part raw_message send_message).each do |m|
+  %w(message_part raw_message send_message count size).each do |m|
     define_method(m) { |*a| perform(m.to_sym, *a) }
   end
 
   ## some methods we relay and set-ify the results
   %w(contacts labels prune_labels!).each do |m|
     define_method(m) { Set.new perform(m.to_sym) }
-  end
-
-  ## get the element out of the hash for your convenience
-  def count query
-    result = perform :count, query
-    result["count"]
-  end
-
-  ## get the element out of the hash for your convenience
-  def size
-    result = perform :size
-    result["size"]
   end
 
 private
