@@ -31,7 +31,7 @@ class LabelListMode < LineCursorMode
   end
 
   def load!
-    @context.labels.load! # just for good measure. we won't actually get the results at this point
+    @context.labels.load!
     @context.labels.all_labels.each do |l|
       @counts[l] = @context.client.count "~#{l}"
       regen_text!

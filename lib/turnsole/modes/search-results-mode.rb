@@ -20,6 +20,19 @@ class SearchResultsMode < ThreadIndexMode
     BufferManager.flash "Search saved as \"#{name}\"" if SearchManager.add name, @query[:text].strip
   end
 
+  ## normally the cursor handling is determined by whether the new thread is
+  ## relevant or not, but we don't have that defined for arbitrary queries
+  ## (yet?).
+  def toggle_new
+    super
+    cursor_down
+  end
+
+  def toggle_starred
+    super
+    cursor_down
+  end
+
   ## TODO, maybe: write an is_relevant? method that talks to the index
   ## and asks whether the thread is a member of these search results
   ## or not.
