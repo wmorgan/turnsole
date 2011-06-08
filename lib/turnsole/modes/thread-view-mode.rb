@@ -174,14 +174,18 @@ EOS
     @context.ui.remove_event_listener self
 
     ## mark as read any messages we have acquired
-    ## special case: if everyone's unread, use the per-thread setter
-    threadinfo = if @messages.values.all? { |m| m.unread? }
+    unread_messages = @messages.values.select { |m| m.unread? }
+
+    ## special case #1: if everyone's read, do nothing
+    return if unread_messages.empty?
+
+    ## special case #2: if everyone's unread, use the per-thread setter
+    threadinfo = if unread_messages.size == @messages.values.size
       @context.client.set_thread_state! @threadinfo.thread_id, @threadinfo.state - ["unread"]
 
-    ## otherwise, set each message individually
+    ## normal case: set each message individually on the server
     else
-      @messages.values.each do |m|
-        next unless m.unread?
+      unread_messages.each do |m|
         @context.client.set_state! m.message_id, (m.state - ["unread"])
         @context.ui.broadcast :message_state, m.message_id
       end
