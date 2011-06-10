@@ -73,7 +73,7 @@ EOS
 
     @headers = {}
     @headers[:recipient] = {
-      "To" => cc.map { |p| p.full_address },
+      "To" => cc.map { |p| p.email_ready_address },
     } if useful_recipient
 
     ## typically we don't want to have a reply-to-sender option if the sender
