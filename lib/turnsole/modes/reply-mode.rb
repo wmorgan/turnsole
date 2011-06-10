@@ -52,15 +52,15 @@ EOS
     ## where mail is received from a mailing lists (so the To: is the
     ## list id itself). if the user subscribes via a particular alias,
     ## we want to use that alias in the reply.
-    #raise [@m.to, @m.cc, @m.recipient_email].inspect
-    from = (@m.to + @m.cc + Set.new([@m.recipient_email])).argfind { |p| @context.accounts.account_for(p) }
+    from_addr = (@m.to + @m.cc).map(&:email)
+    from = (from_addr + [@m.recipient_email]).argfind { |p| @context.accounts.account_for(p) }
     hook_reply_from = @context.hooks.run "reply-from", :message => @m
     from = hook_reply_from || from || @context.accounts.default_account
 
     ## now, determine to: and cc: addressess. we ignore reply-to for list
     ## messages because it's typically set to the list address, which we
     ## explicitly treat with reply type :list
-    to = @m.list_post ? @m.from : (@m.replyto || @m.from)
+    to = @m.list_post ? @m.from : (@m.reply_to || @m.from)
 
     ## next, cc:
     cc = @m.to + @m.cc - Set.new([from, to])

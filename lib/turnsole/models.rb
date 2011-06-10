@@ -153,13 +153,14 @@ class Message
     @list_post = hash["list_post"]
     @list_subscribe = hash["list_subscribe"]
     @list_unsubscribe = hash["list_unsubscribe"]
+    @reply_to = hash["reply_to"].empty? ? nil : hash["reply_to"]
   end
 
   def parse! context
     @chunks = ChunkParser.new(context).chunks_for self
   end
 
-  attr_reader :subject, :from, :date, :to, :cc, :bcc, :thread_id, :message_id, :state, :parts, :recipient_email, :list_post, :list_unsubscribe, :list_subscribe, :chunks, :refs, :email_message_id
+  attr_reader :subject, :from, :date, :to, :cc, :bcc, :thread_id, :message_id, :state, :parts, :recipient_email, :list_post, :list_unsubscribe, :list_subscribe, :chunks, :refs, :email_message_id, :reply_to
 
   def has_state? s; @state.member?(s) end
 
