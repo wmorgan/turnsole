@@ -238,13 +238,11 @@ EOS
 
   def reply type_arg=nil
     messageinfo = @message_lines[curpos] or return
-    message = @messages[messageinfo.message_id]
-    if message
-      mode = ReplyMode.new @context, message, type_arg
-      @context.screen.spawn "Reply to #{message.subject}", mode
-    else
-      @context.screen.minibuf.flash "Message not loaded yet!"
+    message = @messages[messageinfo.message_id] || begin
+      receive_message @context.client.load_message(messageinfo.message_id)
     end
+    mode = ReplyMode.new @context, message, type_arg
+    @context.screen.spawn "Reply to #{message.subject}", mode
   end
 
   def reply_all; reply :all; end
@@ -793,6 +791,8 @@ private
     message.parse! @context
     message.chunks.each { |c| @chunk_layouts[c] = ChunkLayout.new c }
     regen_text!
+
+    message
   end
 
   def init_message_layout!
