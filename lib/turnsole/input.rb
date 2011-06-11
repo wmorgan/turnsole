@@ -40,6 +40,7 @@ class Input
     elsif(action = resolve_input_with_keymap(input_char, @context.global.keymap))
       @context.global.do action
     else
+      input_char -= 256 while input_char >= 256 # yes i have to do this apparently
       @context.screen.minibuf.flash "Unknown command '#{input_char.chr}' for #{focus_mode.name}!"
     end
   end
