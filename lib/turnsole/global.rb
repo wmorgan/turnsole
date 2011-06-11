@@ -18,7 +18,6 @@ class GlobalBehavior
     k.add :search, "Search all messages", '\\', 'F'
     k.add :search_unread, "Show all unread messages", 'U'
     k.add :list_labels, "List labels", 'L'
-    k.add :poll, "Poll for new messages", 'P'
     k.add :compose, "Compose new message", 'm', 'c'
     k.add :nothing, "Do nothing", :ctrl_g
     k.add :recall_draft, "Edit most recent draft message", 'R'
@@ -99,7 +98,6 @@ EOS
         end
       end
     when :compose; ComposeMode.spawn_nicely @context
-    when :poll; PollManager.poll_now!
     when :recall_draft
       case DraftManager.num_drafts
       when 0
