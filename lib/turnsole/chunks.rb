@@ -160,10 +160,13 @@ EOS
     def view_default! path
       cmd = case ::Config::CONFIG["arch"]
       when /darwin/; "open '#{path}'"
-      else; "/usr/bin/run-mailcap --action=view '#{@content_type}:#{path}' &"
+      else; "/usr/bin/run-mailcap --action=view '#{@content_type}:#{path}'"
       end
       @context.logger.debug "running: #{cmd.inspect}"
-      @context.ui.shell_out cmd
+      @context.ui.shell_out(cmd) || begin
+        @context.screen.minibuf.flash "View command failed! Displaying as text."
+        @context.screen.spawn filename, TextMode.new(@context, content.force_to_ascii)
+      end
     end
 
     def view!

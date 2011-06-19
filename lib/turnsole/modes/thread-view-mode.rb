@@ -984,10 +984,14 @@ private
   end
 
   def view chunk
-    @context.screen.minibuf.flash "viewing #{chunk.content_type} attachment..."
-    chunk.view! or begin
-      @context.screen.minibuf.flash "Couldn't execute view command, viewing as text."
-      @context.screen.spawn "Attachment: #{chunk.filename}", TextMode.new(chunk.to_s.force_to_ascii, chunk.filename)
+    say_id = @context.screen.minibuf.say "Viewing #{chunk.content_type} attachment..."
+    begin
+      chunk.view! or begin
+        @context.screen.minibuf.flash "Couldn't execute view command, viewing as text."
+        @context.screen.spawn "Attachment: #{chunk.filename}", TextMode.new(chunk.to_s.force_to_ascii, chunk.filename)
+      end
+    ensure
+      @context.screen.minibuf.clear say_id
     end
   end
 end
