@@ -284,20 +284,10 @@ EOS
   def spawn_modal title, mode, opts={}
     b = spawn title, mode, opts
 
-    TODO IMPLEMENT ME
-
-    draw_screen
-
     until mode.done?
-      c = Ncurses.safe_nonblocking_getch
-      next unless c # getch timeout
+      c = @context.input.asking_getchar
       break if c == Ncurses::KEY_CANCEL
-      begin
-        mode.handle_input c
-      rescue InputSequenceAborted # do nothing
-      end
-      draw_screen
-      erase_flash
+      @context.input.handle c
     end
 
     kill_buffer b

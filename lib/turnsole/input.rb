@@ -129,14 +129,13 @@ class Input
     end
 
     if answer
-      answer =
-        if answer.empty?
-          spawn_modal "file browser", FileBrowserMode.new
-        elsif File.directory?(answer) && !allow_directory
-          spawn_modal "file browser", FileBrowserMode.new(answer)
-        else
-          File.expand_path answer
-        end
+      answer = if answer.empty?
+        @context.screen.spawn_modal "file browser", FileBrowserMode.new(@context)
+      elsif File.directory?(answer) && !allow_directory
+        @context.screen.spawn_modal "file browser", FileBrowserMode.new(@context, answer)
+      else
+        File.expand_path answer
+      end
     end
 
     answer
