@@ -153,7 +153,7 @@ class Message
     @list_post = hash["list_post"]
     @list_subscribe = hash["list_subscribe"]
     @list_unsubscribe = hash["list_unsubscribe"]
-    @reply_to = hash["reply_to"].empty? ? nil : hash["reply_to"]
+    @reply_to = hash["reply_to"].empty? ? nil : Person.from_string(hash["reply_to"])
   end
 
   def parse! context
