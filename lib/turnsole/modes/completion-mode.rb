@@ -21,7 +21,7 @@ class CompletionMode < ScrollMode
     @lines[i]
   end
 
-  def roll!; at_bottom? ? jump_to_start : page_down end
+  def roll!; at_bottom? ? jump_to_start! : page_down end
 
 private
 

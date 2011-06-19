@@ -23,9 +23,9 @@ class ScrollMode < Mode
     k.add :page_up, "Up one page", :page_up, 'p', :backspace, "\C-b"
     k.add :half_page_down, "Down one half page", "\C-d"
     k.add :half_page_up, "Up one half page", "\C-u"
-    k.add :jump_to_start, "Jump to top", :home, '^', '1'
-    k.add :jump_to_end, "Jump to bottom", :end, '$', '0'
-    k.add :jump_to_left, "Jump to the left", '['
+    k.add :jump_to_start!, "Jump to top", :home, '^', '1'
+    k.add :jump_to_end!, "Jump to bottom", :end, '$', '0'
+    k.add :jump_to_left!, "Jump to the left", '['
     k.add :search_in_buffer, "Search in current buffer", '/'
     k.add :continue_search_in_buffer, "Jump to next search occurrence in buffer", 'n'
   end
@@ -120,7 +120,7 @@ class ScrollMode < Mode
     @leftcol = col
   end
 
-  def jump_to_left; jump_to_col 0; end
+  def jump_to_left!; jump_to_col 0; end
 
   ## set top line to l
   def jump_to_line l
@@ -132,7 +132,7 @@ class ScrollMode < Mode
   end
 
   def at_top?; @topline == 0 end
-  def at_bottom?; @botline == num_lines end
+  def at_bottom?; @botline == num_lines - 1 end
 
   def line_down; jump_to_line @topline + 1; end
   def line_up;  jump_to_line @topline - 1; end
@@ -140,8 +140,8 @@ class ScrollMode < Mode
   def page_up; jump_to_line @topline - buffer.content_height + @slip_rows; end
   def half_page_down; jump_to_line @topline + buffer.content_height / 2; end
   def half_page_up; jump_to_line @topline - buffer.content_height / 2; end
-  def jump_to_start; jump_to_line 0; end
-  def jump_to_end; jump_to_line num_lines - buffer.content_height; end
+  def jump_to_start!; jump_to_line 0; end
+  def jump_to_end!; jump_to_line num_lines - buffer.content_height; end
 
   ## ensures topline and botline are maintained correctly.
   def ensure_mode_validity!

@@ -151,12 +151,12 @@ protected
     load_more_if_necessary!
   end
 
-  def jump_to_start
+  def jump_to_start!
     super
     set_cursor_pos @cursor_top
   end
 
-  def jump_to_end
+  def jump_to_end!
     super if topline < (num_lines - buffer.content_height)
     set_cursor_pos(num_lines - 1)
   end
