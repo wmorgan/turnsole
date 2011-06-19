@@ -121,8 +121,15 @@ class Input
 
   def ask_for_filename domain, question, default=nil, allow_directory=false
     answer = ask domain, question, default do |s|
-      glob = File.join File.expand_path(s), "*"
-      Dir[glob].sort.map do |fn|
+      path = File.expand_path s
+      glob = path + (File.directory?(path) ? "/" : "") + "*"
+      files = Dir[glob]
+
+      while files.size == 1 && File.directory?(files.first)
+        files = Dir[files.first + "/*"]
+      end
+
+      files.sort.map do |fn|
         suffix = File.directory?(fn) ? "/" : ""
         [fn + suffix, File.basename(fn) + suffix]
       end
