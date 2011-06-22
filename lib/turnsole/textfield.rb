@@ -80,6 +80,8 @@ class TextField
     when Ncurses::KEY_TAB # completion
       return true unless @completion_block
 
+      @answer.strip!
+
       if @completions.empty?
         c = @completion_block.call @answer
         if c.size > 0
