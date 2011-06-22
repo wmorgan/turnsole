@@ -119,7 +119,7 @@ class Input
     end
   end
 
-  def ask_for_filename domain, question, default=nil, allow_directory=false
+  def ask_for_filename domain, question, default=nil
     answer = ask domain, question, default do |s|
       path = File.expand_path s
       glob = path + (File.directory?(path) ? "/" : "") + "*"
@@ -138,7 +138,7 @@ class Input
     if answer
       answer = if answer.empty?
         @context.screen.spawn_modal "file browser", FileBrowserMode.new(@context)
-      elsif File.directory?(answer) && !allow_directory
+      elsif File.directory?(answer)
         @context.screen.spawn_modal "file browser", FileBrowserMode.new(@context, answer)
       else
         File.expand_path answer
@@ -146,6 +146,20 @@ class Input
     end
 
     answer
+  end
+
+  def ask_for_directory domain, question, default=nil
+    answer = ask domain, question, default do |s|
+      path = File.expand_path s
+      glob = path + (File.directory?(path) ? "/" : "") + "*"
+      files = Dir[glob].select { |d| File.directory?(d) }
+
+      files.sort.map do |fn|
+        [fn + "/", File.basename(fn) + "/"]
+      end
+    end
+
+    File.expand_path answer if answer
   end
 
   ## returns an array of labels
