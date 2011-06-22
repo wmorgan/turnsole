@@ -165,6 +165,10 @@ class Message
   def has_state? s; @state.member?(s) end
 
   def recipients; to + cc + bcc end
+
+  def quotable_body_lines
+    chunks.select(&:quotable?).map(&:lines).flatten
+  end
 end
 
 end

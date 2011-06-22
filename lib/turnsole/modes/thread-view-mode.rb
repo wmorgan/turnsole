@@ -407,9 +407,10 @@ EOS
 
   def edit_as_new
     m = @message_lines[curpos] or return
-    mode = ComposeMode.new(:body => m.quotable_body_lines, :to => m.to, :cc => m.cc, :subj => m.subj, :bcc => m.bcc, :refs => m.refs, :reply_to => m.reply_to)
-    BufferManager.spawn "edit as new", mode
-    mode.edit_message
+    m = get_message_from_messageinfo m
+    mode = ComposeMode.new(@context, :body => m.quotable_body_lines, :to => m.to, :cc => m.cc, :subj => m.subject, :bcc => m.bcc, :refs => m.refs, :reply_to => m.reply_to)
+    @context.screen.spawn "edit as new", mode
+    mode.edit_message!
   end
 
   def save_to_disk

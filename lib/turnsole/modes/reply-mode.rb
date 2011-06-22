@@ -164,9 +164,8 @@ protected
   end
 
   def reply_body_lines_for m
-    quotable_body_lines = m.chunks.select(&:quotable?).map(&:lines).flatten
     attribution = @context.hooks.run("attribution", :message => m) || default_attribution(m)
-    lines = attribution.split("\n") + quotable_body_lines.map { |l| "> #{l}" }
+    lines = attribution.split("\n") + m.quotable_body_lines.map { |l| "> #{l}" }
     lines.pop while lines.last =~ /^\s*$/
     lines
   end
