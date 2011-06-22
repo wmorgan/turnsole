@@ -229,18 +229,13 @@ EOS
     m = @message_lines[curpos] or return
     @layouts[m].state = (@layouts[m].state == :detailed ? :open : :detailed)
 
-    if !m.fake? && @messages[m.message_id].nil?
-      receive_message @context.client.load_message(m.message_id)
-    else
-      regen_text!
-    end
+    get_message_from_messageinfo m # ensure we have it
+    regen_text!
   end
 
   def reply type_arg=nil
     messageinfo = @message_lines[curpos] or return
-    message = @messages[messageinfo.message_id] || begin
-      receive_message @context.client.load_message(messageinfo.message_id)
-    end
+    message = get_message_from_messageinfo messageinfo.message_id
     mode = ReplyMode.new @context, message, type_arg
     @context.screen.spawn "Reply to #{message.subject}", mode
   end
@@ -389,11 +384,13 @@ EOS
       ## entire message
       chunk = @message_lines[curpos]
     end
+
     layout = if chunk.is_a?(MessageSummary)
       @layouts[chunk]
     elsif chunk.expandable?
       @chunk_layouts[chunk]
     end
+
     if layout
       layout.state = (layout.state != :closed ? :closed : :open)
       #cursor_down if layout.state == :closed # too annoying
@@ -781,7 +778,8 @@ private
 
   def load_any_open_messages!
     open = @thread.select { |m, depth| !m.fake? && @messages[m.message_id].nil? && @layouts[m].state != :closed }
-    open.each { |m, depth| receive_message @context.client.load_message(m.message_id) }
+    open.each { |m, depth| get_message_from_messageinfo m }
+    regen_text!
   end
 
   def receive_message message
