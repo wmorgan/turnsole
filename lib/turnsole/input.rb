@@ -239,9 +239,9 @@ class Input
   def resolve_input_with_keymap c, keymap
     action, text = keymap.action_for c
     while action.is_a? Keymap # multi-key commands, prompt
-      key = BufferManager.ask_getch text
+      key = ask_getch text
       unless key # user canceled, abort
-        erase_flash
+        @context.screen.minibuf.clear_flash!
         raise InputSequenceAborted
       end
       action, text = action.action_for(key) if action.has_key?(key)
