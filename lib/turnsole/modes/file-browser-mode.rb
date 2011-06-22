@@ -22,7 +22,7 @@ class FileBrowserMode < LineCursorMode
     @done = false
     @value = nil
     regen_text!
-    super :skip_top_rows => RESERVED_ROWS
+    super context, :skip_top_rows => RESERVED_ROWS
   end
 
   def cwd; @dirs.last end
