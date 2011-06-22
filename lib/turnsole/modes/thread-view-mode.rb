@@ -795,6 +795,17 @@ private
     message
   end
 
+  ## load message if necessary
+  def get_message_from_messageinfo m
+    return nil if m.fake?
+    @messages[m.message_id] ||= begin
+      message = @context.client.load_message m.message_id
+      message.parse! @context
+      message.chunks.each { |c| @chunk_layouts[c] = ChunkLayout.new c }
+      message
+    end
+  end
+
   def init_message_layout!
     earliest, latest = nil, nil
     latest_date = nil
