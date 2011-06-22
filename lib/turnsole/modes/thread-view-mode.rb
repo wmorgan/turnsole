@@ -415,47 +415,49 @@ EOS
 
   def save_to_disk
     chunk = @chunk_lines[curpos] or return
+
+    default_dir = @context.config.default_attachment_save_dir || ENV["HOME"]
     case chunk
     when Chunk::Attachment
-      default_dir = $config[:default_attachment_save_dir]
-      default_dir = ENV["HOME"] if default_dir.nil? || default_dir.empty?
       default_fn = File.expand_path File.join(default_dir, chunk.filename)
-      fn = BufferManager.ask_for_filename :filename, "Save attachment to file: ", default_fn
-      save_to_file(fn) { |f| f.write chunk.content } if fn
+      fn = @context.input.ask_for_filename :filename, "Save attachment to file: ", default_fn
+      return unless fn
+      @context.ui.save_to_file(fn) { |f| f.write chunk.content }
     else
       m = @message_lines[curpos]
-      fn = BufferManager.ask_for_filename :filename, "Save message to file: "
+      fn = @context.input.ask_for_filename :filename, "Save message to file: "
       return unless fn
-      save_to_file(fn) do |f|
-        m.each_raw_message_line { |l| f.write l }
-      end
+
+      rawbody = @context.client.raw_message m.message_id
+      @context.ui.save_to_file(fn) { |s| s.write rawbody }
     end
   end
 
   def save_all_to_disk
     m = @message_lines[curpos] or return
-    default_dir = ($config[:default_attachment_save_dir] || ".")
-    folder = BufferManager.ask_for_filename :filename, "Save all attachments to folder: ", default_dir, true
-    return unless folder
+    message = get_message_from_messageinfo m
+    default_dir = @context.config.default_attachment_save_dir || ENV["HOME"]
+    dir = @context.input.ask_for_directory :directory, "Save all attachments to directory: ", default_dir
+    return unless dir
 
     num = 0
     num_errors = 0
-    m.chunks.each do |chunk|
+    message.chunks.each do |chunk|
       next unless chunk.is_a?(Chunk::Attachment)
-      fn = File.join(folder, chunk.filename)
-      num_errors += 1 unless save_to_file(fn, false) { |f| f.write chunk.content }
+      fn = File.join dir, chunk.filename
+      num_errors += 1 unless @context.ui.save_to_file(fn, false) { |f| f.write chunk.content }
       num += 1
     end
 
-    if num == 0
-      BufferManager.flash "Didn't find any attachments!"
-    else
-      if num_errors == 0
-        BufferManager.flash "Wrote #{num.pluralize 'attachment'} to #{folder}."
+    @context.screen.minibuf.flash(if num == 0
+        "No attachments found!"
       else
-        BufferManager.flash "Wrote #{(num - num_errors).pluralize 'attachment'} to #{folder}; couldn't write #{num_errors} of them (see log)."
-      end
-    end
+        if num_errors == 0
+          "Wrote #{num.pluralize 'attachment'} to #{dir}."
+        else
+          "Wrote #{(num - num_errors).pluralize 'attachment'} to #{dir}; couldn't write #{num_errors} of them (see log)."
+        end
+      end)
   end
 
   def publish

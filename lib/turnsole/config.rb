@@ -51,7 +51,7 @@ private
       :confirm_top_posting => true,
       :jump_to_open_message => true,
 
-      :default_attachment_save_dir => "",
+      :default_attachment_save_dir => ENV["HOME"],
       :poll_interval => 300,
       :heliotrope_url => "http://localhost:8042/",
     }
