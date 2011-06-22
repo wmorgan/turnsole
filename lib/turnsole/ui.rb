@@ -65,8 +65,11 @@ class UI
       @context.screen.minibuf.clear_flash!
       key = args.first
 
-      fiber = @input_fibers.pop || (spawn_fiber { @context.input.handle key })
-      resume_fiber fiber, key
+      begin
+        fiber = @input_fibers.pop || (spawn_fiber { @context.input.handle key })
+        resume_fiber fiber, key
+      rescue Input::InputSequenceAborted # do nothing
+      end
     when :server_response
       results, fiber = args
       resume_fiber fiber, results
