@@ -118,6 +118,16 @@ class Minibuf
     end
   end
 
+  def with_message message
+    say_id = say message
+    begin
+      ret = yield
+    ensure
+      clear say_id
+    end
+    ret
+  end
+
   def set_shortq q
     raise StateError, "already have a textfield active" if @textfield
     @shortq = q
