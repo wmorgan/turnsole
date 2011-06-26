@@ -227,7 +227,7 @@ EOS
 
   def reply type_arg=nil
     messageinfo = @message_lines[curpos] or return
-    message = get_message_from_messageinfo messageinfo.message_id
+    message = get_message_from_messageinfo messageinfo
     mode = ReplyMode.new @context, message, type_arg
     @context.screen.spawn "Reply to #{message.subject}", mode
   end
