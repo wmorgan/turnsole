@@ -1,6 +1,13 @@
-Turnsole is a curses client for Heliotrope.
+Turnsole is a curses client for Heliotrope, the personal email server. Much
+of its code is based on / stolen from Sup (http://sup.rubyforge.org).
 
-It is a text-based email client. Much of its code is based on / stolen from Sup
-(http://sup.rubyforge.org)
+Turnsole is still under development; as such, there is no gem yet. You will
+have to run it the hard way:
 
-It is a work in progress.
+0. Install Heliotrope. See the README at http://github.com/wmorgan/heliotrope.
+1. Start Heliotrope.
+2. Run `git clone https://github.com/wmorgan/turnsole.git`.
+3. Run `ruby -Ilib bin/turnsole`.
+
+Comments? Questions? File issues on the github page; ask questions on
+the sup-devel mailing list: http://rubyforge.org/mailman/listinfo/sup-devel.
