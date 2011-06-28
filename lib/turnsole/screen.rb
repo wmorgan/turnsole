@@ -88,8 +88,10 @@ EOS
     @input_thread ||= Thread.new do
       while true
         case(c = Ncurses.threadsafe_blocking_getch)
+        when 0
+          ## null byte -- do nothing
         when nil
-          ## timeout -- don't think this actually happens
+          ## timeout -- do nothing
         when 410
           ## ncurses's way of telling us it's detected a refresh.  since
           ## we have our own sigwinch handler, we get this AFTER we've
