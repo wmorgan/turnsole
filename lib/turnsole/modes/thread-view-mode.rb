@@ -778,17 +778,6 @@ private
     regen_text!
   end
 
-  def receive_message message
-    return unless buffer # die unless i'm still actually being displayed
-
-    @messages[message.message_id] = message
-    message.parse! @context
-    message.chunks.each { |c| @chunk_layouts[c] = ChunkLayout.new c }
-    regen_text!
-
-    message
-  end
-
   ## load message if necessary
   def get_message_from_messageinfo m
     return nil if m.fake?
