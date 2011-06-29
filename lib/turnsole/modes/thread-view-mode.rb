@@ -597,13 +597,14 @@ EOS
   end
 
   def expand_all_quotes
-    if(m = @message_lines[curpos])
-      quotes = @messages[m.message_id].chunks.select { |c| (c.is_a?(Chunk::Quote) || c.is_a?(Chunk::Signature)) && c.lines.length > 1 }
-      numopen = quotes.inject(0) { |s, c| s + (@chunk_layouts[c].state == :open ? 1 : 0) }
-      newstate = numopen > quotes.length / 2 ? :closed : :open
-      quotes.each { |c| @chunk_layouts[c].state = newstate }
-      regen_text!
-    end
+    m = @message_lines[curpos] or return
+    message = @messages[m.message_id] or return
+
+    quotes = message.chunks.select { |c| (c.is_a?(Chunk::Quote) || c.is_a?(Chunk::Signature)) && c.lines.length > 1 }
+    numopen = quotes.inject(0) { |s, c| s + (@chunk_layouts[c].state == :open ? 1 : 0) }
+    newstate = numopen > quotes.length / 2 ? :closed : :open
+    quotes.each { |c| @chunk_layouts[c].state = newstate }
+    regen_text!
   end
 
   def archive_and_kill; archive_and_then :kill end
