@@ -264,27 +264,15 @@ EOS
 
   def bounce
     m = @message_lines[curpos] or return
-    to = BufferManager.ask_for_contacts(:people, "Bounce To: ") or return
-
-    defcmd = AccountManager.default_account.bounce_sendmail
-
-    cmd = case (hookcmd = HookManager.run "bounce-command", :from => m.from, :to => to)
-          when nil, /^$/ then defcmd
-          else hookcmd
-          end + ' ' + to.map { |t| t.email }.join(' ')
+    to = @context.input.ask_for_contacts(:people, "Bounce To: ") or return
 
     bt = to.size > 1 ? "#{to.size} recipients" : to.to_s
 
-    if BufferManager.ask_yes_or_no "Really bounce to #{bt}?"
-      debug "bounce command: #{cmd}"
-      begin
-        IO.popen(cmd, 'w') do |sm|
-          sm.write m.raw_message
-        end
-        raise SendmailCommandFailed, "Couldn't execute #{cmd}" unless $? == 0
-      rescue SystemCallError, SendmailCommandFailed => e
-        warn "problem sending mail: #{e.message}"
-        BufferManager.flash "Problem sending mail: #{e.message}"
+    if @context.input.ask_yes_or_no "Really bounce to #{bt}?"
+      @context.screen.minibuf.with_message "Bouncing message..." do
+        rawbody = @context.client.raw_message m.message_id
+        @context.client.send_message m, :labels => %w(inbox), :force_recipients => to.map { |p| p.email }
+        @context.screen.minibuf.flash "Bounced!"
       end
     end
   end
