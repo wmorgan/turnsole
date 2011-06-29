@@ -7,6 +7,12 @@ have to run it the hard way:
 0. Install Heliotrope. See the README at http://github.com/wmorgan/heliotrope.
 1. Start Heliotrope.
 2. Run `git clone https://github.com/wmorgan/turnsole.git`.
+3. Install the following gems: trollop ncursesw console locale rmail
+
+Invoke it like this:
+
+  ruby -I lib -I <heliotrope repo>/lib bin/turnsole
+
 3. Run `ruby -Ilib bin/turnsole`.
 
 Comments? Questions? File issues on the github page; ask questions on
