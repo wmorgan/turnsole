@@ -227,7 +227,7 @@ protected
     xpos = 0
     a.each_with_index do |(color, text), i|
       raise "nil text for color '#{color}'" if text.nil? # good for debugging
-      l = text.display_width
+      l = text.display_width rescue text.length
       no_fill = i != a.size - 1
 
       if xpos + l < @leftcol
