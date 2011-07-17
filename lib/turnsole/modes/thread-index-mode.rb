@@ -379,20 +379,18 @@ EOS
 
   def reply type_arg=nil
     t = cursor_thread or return
-    m = t.latest_message
+    m = latest_message_for_thread t
     return if m.nil? # probably won't happen
-    m.load_from_source!
     mode = ReplyMode.new @context, m, type_arg
-    @context.screen.spawn "Reply to #{m.subj}", mode
+    @context.screen.spawn "Reply to #{m.subject}", mode
   end
 
   def reply_all; reply :all; end
 
   def forward
     t = cursor_thread or return
-    m = t.latest_message
+    m = latest_message_for_thread t
     return if m.nil? # probably won't happen
-    m.load_from_source!
     ForwardMode.spawn_nicely :message => m
   end
 
@@ -532,6 +530,15 @@ protected
   def dirty?; false end
 
 private
+
+  def latest_message_for_thread t
+    ## load the thread
+    thread = @context.client.load_thread t.thread_id
+    ## pick the latest message
+    latest = thread.map { |m, depth| m }.sort_by(&:date).last
+    ## load it
+    @context.client.load_message latest.message_id
+  end
 
   def default_size_widget_for t
     case t.size
