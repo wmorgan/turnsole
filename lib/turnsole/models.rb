@@ -157,7 +157,7 @@ class Message
   end
 
   def parse! context
-    @chunks = ChunkParser.new(context).chunks_for self
+    @chunks ||= ChunkParser.new(context).chunks_for(self)
   end
 
   attr_reader :subject, :from, :date, :to, :cc, :bcc, :thread_id, :message_id, :state, :parts, :recipient_email, :list_post, :list_unsubscribe, :list_subscribe, :chunks, :refs, :email_message_id, :reply_to
