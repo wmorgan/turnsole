@@ -53,6 +53,7 @@ require "turnsole/modes/label-list-mode"
 require "turnsole/modes/edit-message-mode"
 require "turnsole/modes/compose-mode"
 require "turnsole/modes/reply-mode"
+require "turnsole/modes/forward-mode"
 require "turnsole/modes/file-browser-mode"
 
 module Turnsole

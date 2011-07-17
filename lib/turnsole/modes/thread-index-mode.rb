@@ -391,7 +391,7 @@ EOS
     t = cursor_thread or return
     m = latest_message_for_thread t
     return if m.nil? # probably won't happen
-    ForwardMode.spawn_nicely :message => m
+    ForwardMode.spawn_nicely @context, :message => m
   end
 
   def status

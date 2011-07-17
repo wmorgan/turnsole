@@ -256,9 +256,10 @@ EOS
 
   def forward
     if(chunk = @chunk_lines[curpos]) && chunk.is_a?(Chunk::Attachment)
-      ForwardMode.spawn_nicely :attachments => [chunk]
-    elsif(m = @message_lines[curpos])
-      ForwardMode.spawn_nicely :message => m
+      ForwardMode.spawn_nicely @context, :attachments => [chunk]
+    elsif(messageinfo = @message_lines[curpos])
+      message = get_message_from_messageinfo messageinfo
+      ForwardMode.spawn_nicely @context, :message => message
     end
   end
 
