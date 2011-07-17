@@ -169,6 +169,15 @@ class Message
   def quotable_body_lines
     chunks.select(&:quotable?).map(&:lines).flatten
   end
+
+  def quotable_header_lines
+    ["From: #{@from.email_ready_address}"] +
+      (@to.empty? ? [] : ["To: " + @to.map { |p| p.email_ready_address }.join(", ")]) +
+      (@cc.empty? ? [] : ["Cc: " + @cc.map { |p| p.email_ready_address }.join(", ")]) +
+      (@bcc.empty? ? [] : ["Bcc: " + @bcc.map { |p| p.email_ready_address }.join(", ")]) +
+      ["Date: #{@date.rfc822}",
+       "Subject: #{@subject}"]
+  end
 end
 
 end
