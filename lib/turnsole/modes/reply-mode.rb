@@ -131,6 +131,7 @@ EOS
         :recipient
       end)
 
+    message.parse! @context
     body = reply_body_lines_for message
 
     @bodies = {}
@@ -171,7 +172,7 @@ protected
   end
 
   def default_attribution m
-    "Excerpts from #{@m.from.name}'s message of #{@m.date}:"
+    "Excerpts from #{m.from.name}'s message of #{m.date}:"
   end
 
   def handle_new_text new_header, new_body
