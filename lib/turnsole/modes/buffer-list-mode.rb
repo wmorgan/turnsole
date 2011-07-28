@@ -44,7 +44,7 @@ protected
   end
 
   def kill_selected_buffer
-    reload if @context.screen.kill_buffer_safely @bufs[curpos][1]
+    reload! if @context.screen.kill_buffer_safely(@bufs[curpos])
   end
 end
 
