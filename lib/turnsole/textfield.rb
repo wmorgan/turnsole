@@ -141,7 +141,12 @@ class TextField
         #debug "history after #{@history.inspect}"
       end
     else
-      ch = c.chr.safely_mark_encoding! @context.encoding
+      ch = begin
+        c.chr.safely_mark_encoding! @context.encoding
+      rescue RangeError
+        return true
+      end
+
       @answer = @answer[0 ... @curpos] + ch + (@answer[@curpos .. -1] || "")
       @answer.safely_mark_encoding! @context.encoding
       @curpos += 1
