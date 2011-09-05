@@ -877,9 +877,17 @@ private
     @person_lines[start] = message.from
     patina = case layout.state
     when :closed, :open
+      from = message.from.nil? ? "?" : message.from.mediumname
+      to = case message.to.size
+        when 0; "no one"
+        when 1; message.to.first.mediumname
+        when 2; message.to.first.mediumname + " and one other"
+        else; message.to.first.mediumname + " and #{message.to.size - 1} others"
+      end
+
       [[prefix_widget, open_widget, new_widget, attach_widget, starred_widget,
         [layout.color,
-        "#{message.from ? message.from.mediumname : '?'}, #{message.date.to_nice_s} (#{message.date.to_nice_distance_s})  #{message.snippet}"]]]
+        "#{from} to #{to}, #{message.date.to_nice_s} (#{message.date.to_nice_distance_s})  #{message.snippet}"]]]
 
     when :detailed
       from_line = [[prefix_widget, open_widget, new_widget, attach_widget, starred_widget,

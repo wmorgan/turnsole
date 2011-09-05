@@ -118,7 +118,7 @@ class MessageSummary
       @subject = hash["subject"]
       @from = Person.from_string hash["from"]
       @date = Time.at hash["date"]
-      @to = hash["to"].map { |p| Person.from_string p }
+      @to = (hash["to"] + hash["cc"]).map { |p| Person.from_string p }
       @thread_id = hash["thread_id"]
       @message_id = hash["message_id"]
       @state = Set.new hash["state"]
