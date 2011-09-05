@@ -11,8 +11,10 @@ class ThreadViewMode < LineCursorMode
     def initialize message
       @state = if message.fake?
         :closed
+      elsif message.unread?
+        :open
       else
-        (message.starred? || message.unread?) ? :open : :closed
+        :closed
       end
       @toggled_state = false
     end
