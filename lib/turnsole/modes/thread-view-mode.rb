@@ -181,20 +181,33 @@ EOS
     return if unread_messages.empty?
 
     ## special case #2: if everyone's unread, use the per-thread setter
-    threadinfo = if unread_messages.size == @messages.values.size
-      @context.client.set_thread_state! @threadinfo.thread_id, @threadinfo.state - ["unread"]
+    begin
+      threadinfo = if unread_messages.size == @messages.values.size
+        @context.client.set_thread_state! @threadinfo.thread_id, @threadinfo.state - ["unread"]
 
-    ## normal case: set each message individually on the server
-    else
-      unread_messages.each do |m|
-        @context.client.set_state! m.message_id, (m.state - ["unread"])
-        @context.ui.broadcast :message_state, m.message_id
+      ## normal case: set each message individually on the server
+      else
+        unread_messages.each do |m|
+          @context.client.set_state! m.message_id, (m.state - ["unread"])
+          @context.ui.broadcast :message_state, m.message_id
+        end
+        @context.client.threadinfo @threadinfo.thread_id
       end
-      @context.client.threadinfo @threadinfo.thread_id
-    end
 
-    ## broadcast new version out to everyone
-    @context.ui.broadcast :thread, threadinfo
+      ## broadcast new version out to everyone
+      @context.ui.broadcast :thread, threadinfo
+
+    rescue HeliotropeClient::Error => e
+      ## we will get errors if the thread has "moved" underneath us--i.e. if
+      ## a new message was added, and it's at the root, and so that's the new
+      ## id of the thread.
+      ##
+      ## if that happens, ignore setting the state here---the thread has new
+      ## messages.
+      ##
+      ## (it would be better to detect this for non-root additions too, but
+      ## we'll start with this for now.)
+    end
   end
 
   def toggle_wrap
