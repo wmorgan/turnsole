@@ -1,8 +1,11 @@
+require 'set'
+
 module Turnsole
 
 class ThreadViewMode < LineCursorMode
   include CanUndo
   include ModeHelper
+  include LogsStuff
 
   ## this holds all info we need to lay out a message
   class MessageLayout
@@ -166,6 +169,7 @@ EOS
 
   def num_lines; @text.length end
   def [] i; @text[i] end
+  def log; @context.log end
 
   def load!
     receive_thread @context.client.load_thread(@threadinfo.thread_id)
@@ -643,48 +647,34 @@ EOS
 
   def archive_and_then op
     dispatch op do
-      @thread.remove_label :inbox
-      UpdateManager.relay self, :archived, @thread.first
-      Index.save_thread @thread
-      UndoManager.register "archiving 1 thread" do
-        @thread.apply_label :inbox
-        Index.save_thread @thread
-        UpdateManager.relay self, :unarchived, @thread.first
+      remove_label :inbox
+      to_undo "archiving 1 thread" do
+        apply_label :inbox
       end
     end
   end
 
   def spam_and_then op
     dispatch op do
-      @thread.apply_label :spam
-      UpdateManager.relay self, :spammed, @thread.first
-      Index.save_thread @thread
-      UndoManager.register "marking 1 thread as spam" do
-        @thread.remove_label :spam
-        Index.save_thread @thread
-        UpdateManager.relay self, :unspammed, @thread.first
+      apply_label :spam
+      to_undo "marking 1 thread as spam" do
+        remove_label :spam
       end
     end
   end
 
   def delete_and_then op
     dispatch op do
-      @thread.apply_label :deleted
-      UpdateManager.relay self, :deleted, @thread.first
-      Index.save_thread @thread
-      UndoManager.register "deleting 1 thread" do
-        @thread.remove_label :deleted
-        Index.save_thread @thread
-        UpdateManager.relay self, :undeleted, @thread.first
+      apply_state :deleted
+      to_undo "deleting 1 thread" do
+        remove_state :deleted
       end
     end
   end
 
   def unread_and_then op
     dispatch op do
-      @thread.apply_label :unread
-      UpdateManager.relay self, :unread, @thread.first
-      Index.save_thread @thread
+      apply_state :unread
     end
   end
 
@@ -698,14 +688,14 @@ EOS
 
     l = lambda do
       yield if block_given?
-      BufferManager.kill_buffer_safely buffer
+      @context.screen.kill_buffer_safely buffer
     end
 
     case op
     when :next
-      @index_mode.launch_next_thread_after @thread, &l
+      @parent_mode.launch_next_thread_after @thread, &l
     when :prev
-      @index_mode.launch_prev_thread_before @thread, &l
+      @parent_mode.launch_prev_thread_before @thread, &l
     when :kill
       l.call
     else
@@ -988,6 +978,29 @@ private
     else
       [[[chunk.patina_color, "#{prefix}x #{chunk.patina_text}"]]]
     end
+  end
+
+  def apply_label label
+    labels = @threadinfo.labels.to_set
+    labels.add label
+    modify_thread_labels [@threadinfo], [labels]
+  end
+
+  def remove_label label
+    labels = @threadinfo.labels.to_set
+    labels.delete label
+    modify_thread_labels [@threadinfo], [labels]
+  end
+
+  def apply_state state
+    debug "state is #{state}, thread state is #{@threadinfo.state.inspect}"
+    new_states = (@threadinfo.state + [state.to_s])
+    modify_thread_state [@threadinfo], [new_states]
+  end
+
+  def remove_state state
+    new_states = (@threadinfo.state - [state.to_s])
+    modify_thread_state [@threadinfo], [new_states]
   end
 
   def view chunk
