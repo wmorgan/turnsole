@@ -152,6 +152,7 @@ EOS
 
     mode = ThreadViewMode.new @context, thread, self
     @context.screen.spawn thread.subject, mode
+    yield if block_given?
     mode.load!
   end
 
@@ -176,7 +177,7 @@ EOS
     if (target_l >= 0) && (target_l < @threads.length)
       t = @threads[target_l]
       set_cursor_pos target_l
-      select t, b
+      select t, &b
     elsif b # no next thread. call the block anyways
       b.call
     end

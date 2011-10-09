@@ -693,9 +693,9 @@ EOS
 
     case op
     when :next
-      @parent_mode.launch_next_thread_after @thread, &l
+      @parent_mode.launch_next_thread_after @threadinfo, &l
     when :prev
-      @parent_mode.launch_prev_thread_before @thread, &l
+      @parent_mode.launch_prev_thread_before @threadinfo, &l
     when :kill
       l.call
     else
@@ -981,19 +981,16 @@ private
   end
 
   def apply_label label
-    labels = @threadinfo.labels.to_set
-    labels.add label
-    modify_thread_labels [@threadinfo], [labels]
+    new_labels = (@threadinfo.labels + [label.to_s])
+    modify_thread_labels [@threadinfo], [new_labels]
   end
 
   def remove_label label
-    labels = @threadinfo.labels.to_set
-    labels.delete label
-    modify_thread_labels [@threadinfo], [labels]
+    new_labels = (@threadinfo.labels - [label.to_s])
+    modify_thread_labels [@threadinfo], [new_labels]
   end
 
   def apply_state state
-    debug "state is #{state}, thread state is #{@threadinfo.state.inspect}"
     new_states = (@threadinfo.state + [state.to_s])
     modify_thread_state [@threadinfo], [new_states]
   end
