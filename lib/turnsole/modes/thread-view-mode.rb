@@ -42,18 +42,6 @@ Return value:
   None. The variable 'headers' should be modified in place.
 EOS
 
-  HookManager.register "bounce-command", <<EOS
-Determines the command used to bounce a message.
-Variables:
-      from: The From header of the message being bounced
-            (eg: likely _not_ your address).
-        to: The addresses you asked the message to be bounced to as an array.
-Return value:
-  A string representing the command to pipe the mail into.  This
-  should include the entire command except for the destination addresses,
-  which will be appended by sup.
-EOS
-
   HookManager.register "publish", <<EOS
 Executed when a message or a chunk is requested to be published.
 Variables:
@@ -281,13 +269,12 @@ EOS
   def bounce
     m = @message_lines[curpos] or return
     to = @context.input.ask_for_contacts(:people, "Bounce To: ") or return
-
-    bt = to.size > 1 ? "#{to.size} recipients" : to.to_s
+    bt = to.size > 1 ? "#{to.size} recipients" : to.first.email
 
     if @context.input.ask_yes_or_no "Really bounce to #{bt}?"
       @context.screen.minibuf.with_message "Bouncing message..." do
         rawbody = @context.client.raw_message m.message_id
-        @context.client.send_message m, :labels => %w(inbox), :force_recipients => to.map { |p| p.email }
+        @context.client.bounce_message rawbody, :force_recipients => to.map { |p| p.email }
         @context.screen.minibuf.flash "Bounced!"
       end
     end

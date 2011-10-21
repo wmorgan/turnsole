@@ -71,7 +71,7 @@ class Client
   end
 
   ## some methods we relay without change
-  %w(message_part raw_message send_message count size).each do |m|
+  %w(message_part raw_message send_message bounce_message count size).each do |m|
     define_method(m) { |*a| perform(m.to_sym, *a) }
   end
 
