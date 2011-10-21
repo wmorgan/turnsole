@@ -193,8 +193,8 @@ EOS
   end
 
   def delete_attachment
-    i = curpos - @attachment_lines_offset - DECORATION_LINES - 1
-    if i >= 0 && i < @attachments.size && BufferManager.ask_yes_or_no("Delete attachment #{@attachment_names[i]}?")
+    i = curpos - @attachment_lines_offset
+    if i >= 0 && i < @attachments.size && @context.input.ask_yes_or_no("Remove attachment #{@attachment_names[i]}?")
       @attachments.delete_at i
       @attachment_names.delete_at i
       update!
