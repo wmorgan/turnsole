@@ -369,11 +369,12 @@ protected
     m.body += sig_lines.join("\n") unless @context.config.edit_signature
     ## body must end in a newline or GPG signatures will be WRONG!
     m.body += "\n" unless m.body =~ /\n\Z/
+    m.header["Content-Type"] = "text/plain; charset=#{@context.encoding}"
 
     ## there are attachments, so wrap body in an attachment of its own
     unless @attachments.empty?
       body_m = m
-      body_m.header["Content-Disposition"] = "inline"
+      #body_m.header["Content-Disposition"] = "inline"
       m = RMail::Message.new
 
       m.add_part body_m
@@ -408,9 +409,8 @@ protected
     m.header["Date"] = Time.now.rfc2822
     m.header["Message-Id"] = @message_id
     m.header["User-Agent"] = "turnsole, a heliotrope client v.#{VERSION}"
-    m.header["Content-Type"] = "text/plain; charset=#{@context.encoding}"
-    m.header["Content-Transfer-Encoding"] ||= '8bit'
-    m.header["MIME-Version"] = "1.0" if m.multipart?
+    #m.header["Content-Transfer-Encoding"] ||= '8bit'
+    #m.header["MIME-Version"] = "1.0" if m.multipart?
     m
   end
 
