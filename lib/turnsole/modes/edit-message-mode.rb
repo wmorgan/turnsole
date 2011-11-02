@@ -150,7 +150,7 @@ EOS
   def edit_subject; edit_field "Subject" end
 
   def edit_message!
-    @file = Tempfile.new "sup.#{self.class.name.gsub(/.*::/, '').camel_to_hyphy}"
+    @file = Tempfile.new "turnsole.#{self.class.name.gsub(/.*::/, '').camel_to_hyphy}"
     @file.puts format_headers(@header - NON_EDITABLE_HEADERS).first
     @file.puts
     @file.puts @body.join("\n")

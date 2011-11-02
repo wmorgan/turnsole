@@ -435,14 +435,15 @@ EOS
     end
 
     @context.screen.minibuf.flash(if num == 0
-        "No attachments found!"
+      "No attachments found!"
+    else
+      if num_errors == 0
+        "Wrote #{num.pluralize 'attachment'} to #{dir}."
       else
-        if num_errors == 0
-          "Wrote #{num.pluralize 'attachment'} to #{dir}."
-        else
-          "Wrote #{(num - num_errors).pluralize 'attachment'} to #{dir}; couldn't write #{num_errors} of them (see log)."
-        end
-      end)
+        "Wrote #{(num - num_errors).pluralize 'attachment'} to #{dir}; couldn't write #{num_errors} of them (see log)."
+      end
+    end)
+  end
 
   def view_in_browser
     m = @message_lines[curpos] or return
@@ -460,10 +461,10 @@ EOS
 
   def publish
     chunk = @chunk_lines[curpos] or return
-    if HookManager.enabled? "publish"
-      HookManager.run "publish", :chunk => chunk
+    if @context.hooks.enabled? "publish"
+      @context.hooks.run "publish", :chunk => chunk
     else
-      BufferManager.flash "Publishing hook not defined."
+      @context.screen.minibuf.flash "Publishing hook not defined."
     end
   end
 
