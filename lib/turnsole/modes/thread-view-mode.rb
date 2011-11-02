@@ -76,6 +76,7 @@ EOS
     k.add :save_to_disk, "Save message/attachment to disk", 's'
     k.add :save_all_to_disk, "Save all attachments to disk", 'A'
     k.add :publish, "Publish message/attachment using publish-hook", 'P'
+    k.add :view_in_browser, "View message in browser", 'H'
     k.add :search, "Search for messages from particular people", 'S'
     k.add :compose, "Compose message to person", 'm'
     k.add :subscribe_to_list, "Subscribe to/unsubscribe from mailing list", "("
@@ -442,6 +443,19 @@ EOS
           "Wrote #{(num - num_errors).pluralize 'attachment'} to #{dir}; couldn't write #{num_errors} of them (see log)."
         end
       end)
+
+  def view_in_browser
+    m = @message_lines[curpos] or return
+    message = @context.client.load_message m.message_id, "text/html"
+    message.parse! @context
+
+    file, attachment_files = message.dump_to_html! @context, "turnsole.view_in_browser"
+    if @context.hooks.enabled? "view_as_html"
+      @context.hooks.run "view_as_html", :filename => file.path
+    else
+      @context.ui.shell_out "xdg-open file://#{file.path} > /dev/null 2> /dev/null"
+    end
+    sleep 1 # lame hack... try and give enough time before file are unlinked due to garbage collection
   end
 
   def publish
