@@ -45,8 +45,8 @@ class Client
     results.map { |m, depth| [MessageSummary.new(m), depth] }
   end
 
-  def load_message message_id
-    result = perform :message, message_id
+  def load_message message_id, mime_type_pref="text/plain"
+    result = perform :message, message_id, mime_type_pref
     Message.new result
   end
 
