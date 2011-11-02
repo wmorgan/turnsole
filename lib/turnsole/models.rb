@@ -1,4 +1,7 @@
 require 'set'
+require 'cgi'
+require 'tempfile'
+require 'uri'
 
 module Turnsole
 
@@ -178,6 +181,74 @@ class Message
       ["Date: #{@date.rfc822}",
        "Subject: #{@subject}"]
   end
+
+  def dump_to_html! context, file_prefix
+    parse! context
+
+    attachment_files = {}
+    cid_files = {}
+
+    ## write out attachment files and record filenames
+    chunks.each do |c|
+      next unless c.is_a? Chunk::Attachment
+      f = Tempfile.new "#{file_prefix}-attachment-#{c.part_id}"
+      f.write c.content
+      f.close
+      attachment_files[c] = f
+      cid_files[c.cid] = f
+    end
+
+    s = <<EOS
+<html>
+<head><title>#{escape_html subject}</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8"/>
+<meta charset="utf-8"/>
+</head>
+<body>
+<div><b>From</b>: #{escape_html from.email_ready_address}</div>
+<div><b>To</b>: #{escape_html to.map { |p| p.email_ready_address }.join(", ")}</div>
+<div><b>Cc</b>: #{escape_html cc.map { |p| p.email_ready_address }.join(", ")}</div>
+<div><b>Bcc</b>: #{escape_html bcc.map { |p| p.email_ready_address }.join(", ")}</div>
+<div><b>Date</b>: #{escape_html Time.at(date)}</div>
+<div><b>Subject</b>: #{escape_html subject}</div>
+<hr/>
+EOS
+    s << chunks.map do |c|
+      %{<div style="padding-top: 1em">} + case c
+      when Chunk::Attachment
+        attachment_url = "file://" + attachment_files[c].path
+        %{<hr/><a href="#{attachment_url}">[attachment: #{c.filename} (#{c.content_type})]</a>} +
+          if c.content_type =~ /^image\//
+            %{<img src="#{attachment_url}"/>}
+          else
+            ""
+          end
+      when Chunk::HTML
+        ## substitute cid values
+        cid_files.inject(c.to_html) { |content, (cid, file)| content.gsub("cid:#{cid}", "file://#{file.path}") }
+      else
+        link_urls c.to_html
+      end
+    end.join
+
+    s << <<EOS
+</body>
+</html>
+EOS
+
+    f = Tempfile.new "#{file_prefix}"
+    f.write s
+    f.close
+    [f, attachment_files.values]
+  end
+
+private
+
+  def escape_html html; CGI.escape_html html.to_s end
+
+  URL_REGEXP = /(#{URI.regexp(%w(http https))})/
+  def link_urls text; text.gsub(URL_REGEXP, "<a href=\"\\1\">\\1</a>") end
+
 end
 
 end
