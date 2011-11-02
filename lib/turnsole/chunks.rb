@@ -90,10 +90,15 @@ Return value:
   /usr/bin/run-mailcap will be tried.
 EOS
 
-    attr_reader :message_id, :part_id, :content_type, :filename, :size, :lines, :content
+    attr_reader :message_id, :part_id, :content_type, :filename, :size, :lines, :content, :cid
     bool_reader :quotable
 
-    def initialize context, message_id, part_id, content_type, filename, size, content=nil
+    def initialize context, message_id, part_id, details
+      @content_type = details["type"]
+      @filename = details["filename"]
+      @size = details["size"]
+      @content = details["content"]
+      @cid = details["cid"]
       @context = context
       @message_id = message_id
       @part_id = part_id
@@ -189,8 +194,23 @@ EOS
     end
   end
 
-  class Text
+  class Simple
     attr_reader :lines
+    def initialize lines
+      @lines = lines
+    end
+
+    def inlineable?; @lines.length == 1 end
+    def expandable?; !inlineable? end
+    def quotable?; true end
+    def initial_state; :closed end
+    def viewable?; false end
+    def color; :default end
+
+    def to_html; lines.map { |l| l + "<br/>" }.join end
+  end
+
+  class Text < Simple
     def initialize lines
       @lines = lines
       ## trim off all empty lines except one
@@ -198,44 +218,37 @@ EOS
     end
 
     def inlineable?; true end
-    def quotable?; true end
-    def expandable?; false end
-    def viewable?; false end
-    def color; :default end
   end
 
-  class Quote
-    attr_reader :lines
-    def initialize lines
-      @lines = lines
-    end
-
-    def inlineable?; @lines.length == 1 end
-    def quotable?; true end
-    def expandable?; !inlineable? end
-    def initial_state; :closed end
-    def viewable?; false end
-
+  class Quote < Simple
     def patina_color; :quote_patina end
     def patina_text; "(#{lines.length} quoted lines)" end
     def color; :quote end
+    def to_html; %{<div style="color: purple">#{super}</div>} end
   end
 
-  class Signature
-    attr_reader :lines
-    def initialize lines
-      @lines = lines
-    end
-
-    def inlineable?; @lines.length == 1 end
+  class Signature < Simple
     def quotable?; false end
-    def expandable?; !inlineable? end
-    def initial_state; :closed end
-    def viewable?; false end
-
     def patina_color; :sig_patina end
     def patina_text; "(#{lines.length}-line signature)" end
     def color; :sig end
+    def to_html; %{<div style="color: blue">#{super}</div>} end
+  end
+
+  class HTML < Simple # basic base class
+    attr_reader :content
+
+    def initialize context, content
+      @context = context
+      @content = content
+    end
+
+    def inlineable?; true end
+    def quotable?; false end
+    def expandable?; false end
+    def viewable?; true end
+    def lines; content end
+    def to_html; content end
   end
 
   class EnclosedMessage
@@ -320,10 +333,12 @@ class ChunkParser
   def chunks_for message
     message.parts.map_with_index do |hash, i|
       case hash["type"]
+      when /^text\/html/
+        Chunk::HTML.new @context, hash["content"]
       when /^text\//
         text_to_chunks(hash["content"].normalize_whitespace.split("\n"))
       else
-        Chunk::Attachment.new @context, message.message_id, i, hash["type"], hash["filename"], hash["size"], hash["content"]
+        Chunk::Attachment.new @context, message.message_id, i, hash
       end
     end.flatten
   end
