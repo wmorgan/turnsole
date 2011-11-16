@@ -203,7 +203,8 @@ protected
         draw_line_from_array ln, s, opts
       end
     else
-      raise "unknown drawable object: #{s.inspect} in #{self} for line #{ln}" # good for debugging
+      ## this happens on e.g. slow loads, and there's no reason to barf
+      #raise "unknown drawable object: #{s.inspect} in #{self} for line #{ln}" # good for debugging
     end
 
       ## speed test

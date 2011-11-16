@@ -61,9 +61,9 @@ EOS
     @query = query
     @hidden_labels = Set.new hidden_labels
 
-    @threads = [] # the threads we actually display
-    @text = []    # the text on screen
-    @lines = {}   # map from thread to line number
+    @threads = []          # the threads we actually display
+    @text = ["loading..."] # the text on screen
+    @lines = {}            # map from thread to line number
 
     ## various display widgets, per line
     @size_widget_width = nil
@@ -96,15 +96,17 @@ EOS
   def log; @context.log end
 
   def schedule_more num_threads
-    return if @last_schedule_more_size == 0
+    return if @already_scheduling_more || (@last_schedule_more_size == 0)
+    @already_scheduling_more = true
     threads = @context.client.search query, num_threads, @threads.size
     @last_schedule_more_size = threads.size
+    @already_scheduling_more = false
     receive_threads threads
   end
 
   def reload
     @threads = []
-    @text = []
+    @text = ["loading..."]
     @last_schedule_more_size = -1
     schedule_more buffer.content_height
     @buffer.mark_dirty!

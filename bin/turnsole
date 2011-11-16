@@ -79,8 +79,6 @@ server_error = begin
   info = turnsole.client.server_info
   if info["status"] != "up"
     "server is not up. It reports that it is #{info["status"].inspect}."
-  elsif info["index_version"] != HELIOTROPE_SUPPORTED_INDEX_VERSION
-    "server reports index version #{info["index_version"].inspect}. I expect #{HELIOTROPE_SUPPORTED_INDEX_VERSION}. You probably need to upgrade."
   else
     log.debug "server is up"
     nil
