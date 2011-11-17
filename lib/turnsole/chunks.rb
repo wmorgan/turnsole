@@ -247,7 +247,7 @@ EOS
     def quotable?; false end
     def expandable?; false end
     def viewable?; true end
-    def lines; content end
+    def lines; content.split("\n") end
     def to_html; content end
   end
 
