@@ -126,7 +126,7 @@ EOS
   end
 
   def sort_threads!
-    @threads = @threads.uniq_by { |t| t.thread_id }.sort_by { |t| t.date }.reverse
+    @threads = @threads.uniq_by { |t| t.thread_id }
   end
 
   def regen_text!
