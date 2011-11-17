@@ -4,7 +4,7 @@ require 'rubygems'
 require 'trollop'
 require "turnsole"
 
-HELIOTROPE_SUPPORTED_INDEX_VERSION = 2
+HELIOTROPE_SUPPORTED_API_VERSION = "0.1"
 
 TURNSOLE_BIN_VERSION = "git" # change me on deploy
 unless Turnsole::VERSION == TURNSOLE_BIN_VERSION
@@ -79,6 +79,8 @@ server_error = begin
   info = turnsole.client.server_info
   if info["status"] != "up"
     "server is not up. It reports that it is #{info["status"].inspect}."
+  elsif info["api_version"] != HELIOTROPE_SUPPORTED_API_VERSION
+    "server reports API version #{info["api_version"].inspect}. I expect #{HELIOTROPE_SUPPORTED_API_VERSION}. You probably need to upgrade turnsole."
   else
     log.debug "server is up"
     nil
