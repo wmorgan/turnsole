@@ -130,7 +130,9 @@ class MessageSummary
   end
 
   bool_reader :fake
-  attr_reader :subject, :from, :date, :to, :thread_id, :message_id, :state, :snippet
+  attr_reader :subject, :from, :date, :to, :thread_id, :message_id, :snippet
+  attr_accessor :state
+
   def recipients; to end
 
   def has_state? s; @state.member?(s) end
@@ -163,7 +165,8 @@ class Message
     @chunks ||= ChunkParser.new(context).chunks_for(self)
   end
 
-  attr_reader :subject, :from, :date, :to, :cc, :bcc, :thread_id, :message_id, :state, :parts, :recipient_email, :list_post, :list_unsubscribe, :list_subscribe, :chunks, :refs, :email_message_id, :reply_to
+  attr_reader :subject, :from, :date, :to, :cc, :bcc, :thread_id, :message_id, :parts, :recipient_email, :list_post, :list_unsubscribe, :list_subscribe, :chunks, :refs, :email_message_id, :reply_to
+  attr_accessor :state
 
   def has_state? s; @state.member?(s) end
 
