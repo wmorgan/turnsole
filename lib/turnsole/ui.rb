@@ -71,14 +71,20 @@ class UI
       rescue Input::InputSequenceAborted # do nothing
       end
     when :server_response
-      results, fiber = args
-      resume_fiber fiber, results
+      results, fiber_or_lambda = args
+      if fiber_or_lambda.respond_to? :call
+        fiber_or_lambda.call(results)
+      else
+        resume_fiber fiber_or_lambda, results
+      end
     when :broadcast
       event, *args = args
       method = "handle_#{event}_update"
       @event_listeners.each do |l|
         l.send(method, *args) if l.respond_to?(method)
       end
+    when :network_event
+      # nothing to do
     when :redraw
       # nothing to do
     when :noop

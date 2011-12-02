@@ -34,49 +34,74 @@ class Client
 
   ## returns an array of ThreadSummary objects
   def search query, num, offset
-    threads = perform :search, query, num, offset
+    threads = perform :search, :args => [query, num, offset]
     threads.map { |t| ThreadSummary.new t }
   end
 
   def threadinfo thread_id
-    result = perform :threadinfo, thread_id
+    result = perform :threadinfo, :args => [thread_id]
     ThreadSummary.new result
   end
 
   ## returns an array of [MessageSummary, depth] pairs
   def load_thread thread_id
-    results = perform :thread, thread_id
+    results = perform :thread, :args => [thread_id]
     results.map { |m, depth| [MessageSummary.new(m), depth] }
   end
 
   def load_message message_id, mime_type_pref="text/plain"
-    result = perform :message, message_id, mime_type_pref
+    result = perform :message, :args => [message_id, mime_type_pref]
     Message.new result
   end
 
   def thread_state thread_id
-    result = perform :thread_state, thread_id
+    result = perform :thread_state, :args => [thread_id]
     Set.new result
   end
 
   def set_labels! thread_id, labels
-    result = perform :set_labels!, thread_id, labels
+    result = perform :set_labels!, :args => [thread_id, labels]
     ThreadSummary.new result
   end
 
   def set_state! message_id, state
-    result = perform :set_state!, message_id, state
+    result = perform :set_state!, :args => [message_id, state]
     MessageSummary.new result
   end
 
   def set_thread_state! thread_id, state
-    result = perform :set_thread_state!, thread_id, state
+    result = perform :set_thread_state!, :args => [thread_id, state]
     ThreadSummary.new result
+  end
+
+  def async_set_labels! thread_id, labels, opts={}
+    on_success = lambda { |x| opts[:on_success].call Set.new(x) } if opts[:on_success]
+    perform_async :set_labels!, opts.merge(:args => [thread_id, labels], :on_success => on_success)
+  end
+
+  def async_set_state! message_id, state, opts={}
+    on_success = lambda { |x| opts[:on_success].call MessageSummary.new(x) } if opts[:on_success]
+    perform_async :set_state!, opts.merge(:args => [message_id, state], :on_success => on_success)
+  end
+
+  def async_set_thread_state! thread_id, state, opts={}
+    on_success = lambda { |x| opts[:on_success].call Set.new(x) } if opts[:on_success]
+    perform_async :set_thread_state!, opts.merge(:args => [thread_id, state], :on_success => on_success)
+  end
+
+  def async_prune_labels! opts={}
+    on_success = lambda { |x| opts[:on_success].call Set.new(x) } if opts[:on_success]
+    perform_async :prune_labels!, opts.merge(:on_success => on_success)
+  end
+
+  def async_load_threadinfo thread_id, opts={}
+    on_success = lambda { |x| opts[:on_success].call ThreadSummary.new(x) } if opts[:on_success]
+    perform_async :threadinfo, opts.merge(:args => [thread_id], :on_success => on_success)
   end
 
   ## some methods we relay without change
   %w(message_part raw_message send_message bounce_message count size).each do |m|
-    define_method(m) { |*a| perform(m.to_sym, *a) }
+    define_method(m) { |*a| perform m.to_sym, :args => a }
   end
 
   ## some methods we relay and set-ify the results
@@ -86,11 +111,16 @@ class Client
 
 private
 
-  def perform cmd, *args
-    @q.push [cmd, args, Fiber.current]
+  def perform cmd, opts={}
+    @q.push [cmd, opts, Fiber.current]
     val = Fiber.yield
     raise val if val.is_a? Exception
     val
+  end
+
+  def perform_async cmd, opts={}
+    @q.push [cmd, opts, nil]
+    nil
   end
 
   def log; @context.log end
@@ -98,10 +128,12 @@ private
   def start_thread!
     Thread.new do
       while true
-        cmd, args, fiber = @q.pop
+        cmd, opts, fiber = @q.pop
+        args = opts[:args] || []
         pretty = "#{cmd}#{args.inspect}"[0, 50]
         debug "sending to server: #{pretty}"
-        @context.ui.enqueue :redraw
+        @context.ui.enqueue :network_event
+        @processing_queue_size += 1
 
         #say_id = @context.screen.minibuf.say "loading #{pretty} ..."
         #@context.ui.enqueue :redraw
@@ -120,7 +152,25 @@ private
           e
         end
 
-        @context.ui.enqueue :server_response, results, fiber
+        @processing_queue_size -= 1
+        @context.ui.enqueue :network_event
+
+        if fiber
+          @context.ui.enqueue :server_response, results, fiber
+        else
+          if results.is_a? Exception
+            if opts[:on_failure]
+              @context.ui.enqueue :server_response, results, opts[:on_failure]
+            else
+              sadface = "uncaught exception from async call: #{results.inspect}"
+              @context.screen.minibuf.flash sadflash
+
+              @context.log.warn "uncaught exception from async call: #{results.inspect}\n#{results.backtrace.join("\n")}"
+            end
+          else
+            @context.ui.enqueue :server_response, results, opts[:on_success] if opts[:on_success]
+          end
+        end
       end
     end
   end
