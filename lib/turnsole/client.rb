@@ -13,6 +13,7 @@ class Client
     @client = HeliotropeClient.new url
     @client_mutex = Mutex.new # we sometimes access client from the main thread, for synchronous calls
     @q = Queue.new
+    @processing_queue_size = 0
   end
 
   def url; @client.url end
@@ -24,6 +25,9 @@ class Client
   def stop!
     @thread.kill if @thread
   end
+
+  def pending_queue_size; @q.size end
+  def num_outstanding_requests; @q.size + @processing_queue_size end
 
   ## the one method in here that is synchronous---good for pinging.
   def server_info; @client_mutex.synchronize { @client.info } end

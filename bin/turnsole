@@ -157,7 +157,14 @@ ensure
   if turnsole.screen
     turnsole.screen.stop_cursing!
   end
+
   log.add_sink $stderr
+
+  while turnsole.client.num_outstanding_requests > 0
+    puts "Waiting for #{turnsole.client.num_outstanding_requests} outstanding requests to server..."
+    sleep 1
+  end
+
   turnsole.shutdown!
 
   if (fn = ENV['TURNSOLE_PROFILE'])
