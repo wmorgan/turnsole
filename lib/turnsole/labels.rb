@@ -23,7 +23,7 @@ class Labels
   end
 
   def prune!
-    @labels = @context.client.prune_labels!
+    @context.client.async_prune_labels! :on_success => lambda { |labels| @labels = labels }
   end
 end
 end
