@@ -34,7 +34,7 @@ class Buffer
   end
 
   def status_bar_text
-    " [#{mode.name}] #{title}   #{mode.status_bar_text}"
+    "#{@context.client.num_outstanding_requests} [#{mode.name}] #{title}   #{mode.status_bar_text}"
   end
 
   def draw!
