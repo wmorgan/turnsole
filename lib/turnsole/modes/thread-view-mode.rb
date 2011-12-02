@@ -171,20 +171,21 @@ EOS
 
     ## special case #2: if everyone's unread, use the per-thread setter
     begin
-      threadinfo = if unread_messages.size == @messages.values.size
-        @context.client.set_thread_state! @threadinfo.thread_id, @threadinfo.state - ["unread"]
+      if unread_messages.size == @messages.values.size
+        @threadinfo.state -= ["unread"]
+        @context.client.async_set_thread_state! @threadinfo.thread_id, @threadinfo.state
 
       ## normal case: set each message individually on the server
       else
         unread_messages.each do |m|
-          @context.client.set_state! m.message_id, (m.state - ["unread"])
+          m.state -= ["unread"]
+          @context.client.async_set_state! m.message_id, m.state
           @context.ui.broadcast :message_state, m.message_id
         end
-        @context.client.threadinfo @threadinfo.thread_id
       end
 
       ## broadcast new version out to everyone
-      @context.ui.broadcast :thread, threadinfo
+      @context.client.async_load_threadinfo @threadinfo.thread_id, :on_success => lambda { |threadinfo| @context.ui.broadcast :thread, threadinfo }
 
     rescue HeliotropeClient::Error => e
       ## we will get errors if the thread has "moved" underneath us--i.e. if
