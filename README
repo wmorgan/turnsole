@@ -1,19 +1,34 @@
-Turnsole is a curses client for Heliotrope, the personal email server. Much
-of its code is based on / stolen from Sup (http://sup.rubyforge.org).
+Turnsole is a curses client for Heliotrope, the personal email server.
 
-Turnsole is still under development; as such, there is no gem yet. You will
+Turnsole is still under development. As such, there is no gem yet. You will
 have to run it the hard way:
 
-0. Install Heliotrope. See the README at http://github.com/wmorgan/heliotrope.
-1. Start Heliotrope.
-2. Run `git clone https://github.com/wmorgan/turnsole.git`.
-3. Install the following gems: trollop ncursesw console locale rmail
+0.  Install Heliotrope. See the README at http://github.com/wmorgan/heliotrope.
+1.  Start Heliotrope.
+2.  Run `git clone https://github.com/wmorgan/turnsole.git`.
+3.  Install the following gems: trollop console locale rmail rest-client.
+4.1 If you are on OS X 10.6, also install the snowleopard-ncurses gem.
+4.2 If you are on Linux, also install the ncursesw gem.
 
-Invoke it like this:
-
+Run turnsole liek this:
   ruby -I lib -I <heliotrope repo>/lib bin/turnsole
 
-3. Run `ruby -Ilib bin/turnsole`.
+After the first invocation, you should edit ~/.turnsole/config.yaml to
+set any defaults.
+
+SPECIAL NOTES FOR OS X
+----------------------
+
+Certain versions of Ruby, on OS X, appear to exhibit bugs in Fibers,
+which turnsole uses extensively.
+
+- Ruby 1.8.7 works fine (Turnsole includes a Fiber backport).
+- Ruby 1.9.2-p280 fails.
+- Ruby 1.9.3-p0 works, but you cannot compile with llvm-gcc. Unfortunately,
+if you have XCode installed, this is the default. (See http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-core/40574 .)
+If you're using rvm to install, try this:
+  CC=/usr/bin/gcc-4.2 rvm install ruby-1.9.3-p0
+I managed to get that working.
 
 Comments? Questions? File issues on the github page; ask questions on
 the sup-devel mailing list: http://rubyforge.org/mailman/listinfo/sup-devel.

@@ -1,7 +1,11 @@
 require 'locale'
 require 'fileutils'
 require 'yaml'
-require 'ncursesw'
+begin
+  require 'ncursesw' # only on Linux
+rescue LoadError
+  require 'ncurses'
+end
 require 'curses'
 require 'set'
 
