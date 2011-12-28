@@ -126,7 +126,7 @@ EOS
   end
 
   def sort_threads!
-    @threads = @threads.uniq_by { |t| t.thread_id }
+    @threads = @threads.uniq_by { |t| t.thread_id }.sort_by { |t| t.date }.reverse
   end
 
   def regen_text!
@@ -204,8 +204,7 @@ EOS
         update_text_for_line! index
       end
     elsif is_relevant?(new_thread) # we don't have it, and we need to add it
-      @threads << new_thread
-      sort_threads!
+      add_thread new_thread
       regen_text! # rebuild everybody!
     end
   end
