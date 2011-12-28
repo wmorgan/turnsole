@@ -261,7 +261,7 @@ EOS
 
 private
 
-  def escape_html html; CGI.escape_html html.to_s end
+  def escape_html html; CGI.escapeHTML html.to_s end
 
   URL_REGEXP = /(#{URI.regexp(%w(http https))})/
   def link_urls text; text.gsub(URL_REGEXP, "<a href=\"\\1\">\\1</a>") end
