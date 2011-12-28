@@ -782,8 +782,10 @@ private
 
   def load_any_open_messages!
     open = @thread.select { |m, depth| !m.fake? && @messages[m.message_id].nil? && @layouts[m].state != :closed }
-    open.each { |m, depth| get_message_from_messageinfo m }
-    regen_text!
+    open.each do |m, depth|
+      get_message_from_messageinfo m
+      regen_text!
+    end
   end
 
   ## load message if necessary
