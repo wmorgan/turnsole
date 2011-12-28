@@ -30,16 +30,16 @@ module ModeHelper
     threads.zip(new_labels).each do |t, labels|
       @context.client.async_set_labels! t.thread_id, labels
       t.labels = labels
-      #@context.ui.broadcast :thread, t
-      @context.client.async_load_threadinfo t.thread_id, :on_success => lambda { |threadinfo| @context.ui.broadcast :thread, threadinfo }
+      @context.ui.broadcast :thread, t
+      @context.client.async_load_threadinfo t.thread_id
     end
 
     to_undo desc do
       threads.zip(old_labels).each do |t, labels|
         @context.client.async_set_labels! t.thread_id, labels
         t.labels = labels
-        #@context.ui.broadcast :thread, t
-        @context.client.async_load_threadinfo t.thread_id, :on_success => lambda { |threadinfo| @context.ui.broadcast :thread, threadinfo }
+        @context.ui.broadcast :thread, t
+        @context.client.async_load_threadinfo t.thread_id
       end
     end
 
@@ -55,16 +55,16 @@ module ModeHelper
     threads.zip(new_state).each do |t, state|
       @context.client.async_set_thread_state! t.thread_id, state
       t.state = state
-      #@context.ui.broadcast :thread, t
-      @context.client.async_load_threadinfo t.thread_id, :on_success => lambda { |threadinfo| @context.ui.broadcast :thread, threadinfo }
+      @context.ui.broadcast :thread, t
+      @context.client.async_load_threadinfo t.thread_id
     end
 
     to_undo desc do
       threads.zip(old_state).each do |t, state|
         @context.client.async_set_thread_state! t.thread_id, state
         t.state = state
-        #@context.ui.broadcast :thread, t
-        @context.client.async_load_threadinfo t.thread_id, :on_success => lambda { |threadinfo| @context.ui.broadcast :thread, threadinfo }
+        @context.ui.broadcast :thread, t
+        @context.client.async_load_threadinfo t.thread_id
       end
     end
     threads

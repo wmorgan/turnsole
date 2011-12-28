@@ -103,11 +103,25 @@ class ThreadSummary
     @indirect_recipients = Set.new hash["indirect_recipients"].map { |p| Person.from_string(p) }
   end
 
-  attr_reader :subject, :participants, :unread_participants, :direct_recipients, :indirect_recipients, :date, :size, :snippet, :thread_id
-  attr_accessor :labels, :state
+  attr_reader :subject, :participants, :unread_participants, :direct_recipients, :indirect_recipients, :date, :size, :snippet, :thread_id, :state
+  attr_accessor :labels
 
   def has_state? s; @state.member?(s) end
   def has_label? s; @labels.member?(s) end
+
+  ## here we simulate the server-side logic of replicating certain bits of
+  ## state as labels. this is so that we can make modifications and have
+  ## the ui do the right thing without having to wait for a server round-trip.
+  def state= s
+    @state = Set.new s
+    HeliotropeClient::MESSAGE_MUTABLE_STATE.each do |s|
+      if @state.member? s
+        @labels << s
+      else
+        @labels.delete s
+      end
+    end
+  end
 end
 
 class MessageSummary
