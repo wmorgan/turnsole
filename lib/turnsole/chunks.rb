@@ -114,8 +114,6 @@ EOS
                         # mime-decode hook, or if it's plain text
       @content = nil
       @lines = nil
-
-      receive_content content if content # if we happen to have it already...
     end
 
     def content
