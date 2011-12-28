@@ -162,42 +162,6 @@ EOS
 
   def cleanup!
     @context.ui.remove_event_listener self
-
-    ## mark as read any messages we have acquired
-    unread_messages = @messages.values.select { |m| m.unread? }
-
-    ## special case #1: if everyone's read, do nothing
-    return if unread_messages.empty?
-
-    ## special case #2: if everyone's unread, use the per-thread setter
-    begin
-      if unread_messages.size == @messages.values.size
-        @threadinfo.state -= ["unread"]
-        @context.client.async_set_thread_state! @threadinfo.thread_id, @threadinfo.state
-
-      ## normal case: set each message individually on the server
-      else
-        unread_messages.each do |m|
-          m.state -= ["unread"]
-          @context.client.async_set_state! m.message_id, m.state
-          @context.ui.broadcast :message_state, m.message_id
-        end
-      end
-
-      ## broadcast new version out to everyone
-      @context.client.async_load_threadinfo @threadinfo.thread_id, :on_success => lambda { |threadinfo| @context.ui.broadcast :thread, threadinfo }
-
-    rescue HeliotropeClient::Error => e
-      ## we will get errors if the thread has "moved" underneath us--i.e. if
-      ## a new message was added, and it's at the root, and so that's the new
-      ## id of the thread.
-      ##
-      ## if that happens, ignore setting the state here---the thread has new
-      ## messages.
-      ##
-      ## (it would be better to detect this for non-root additions too, but
-      ## we'll start with this for now.)
-    end
   end
 
   def toggle_wrap
@@ -775,6 +739,7 @@ private
     return unless buffer # die unless i'm still actually being displayed
 
     @thread = thread
+    @initially_unread_messages = Set.new @thread.select { |m, depth| m.unread? }.map { |m, d| m }
     init_message_layout!
     regen_text!
     load_any_open_messages!
@@ -786,6 +751,10 @@ private
       get_message_from_messageinfo m
       regen_text!
     end
+
+    ## since we've potentially changed some message state, let's rebroadcast
+    ## the thread state out to everyone
+    @context.client.async_load_threadinfo @threadinfo.thread_id, :on_success => lambda { |threadinfo| @context.ui.broadcast :thread, threadinfo }
   end
 
   ## load message if necessary
@@ -795,6 +764,11 @@ private
       message = @context.client.load_message m.message_id
       message.parse! @context
       message.chunks.each { |c| @chunk_layouts[c] = ChunkLayout.new c }
+
+      message.state -= ["unread"]
+      @context.client.async_set_state! message.message_id, message.state
+      @context.ui.broadcast :message_state, message.message_id
+
       message
     end
   end
