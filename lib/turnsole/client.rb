@@ -130,7 +130,7 @@ private
       while true
         cmd, opts, fiber = @q.pop
         args = opts[:args] || []
-        pretty = "#{cmd}#{args.inspect}"[0, 50]
+        pretty = "#{cmd}#{args.inspect}"[0, 150]
         debug "sending to server: #{pretty}"
         @context.ui.enqueue :network_event
         @processing_queue_size += 1
@@ -142,11 +142,11 @@ private
         results = begin
           results = @client_mutex.synchronize { @client.send cmd, *args }
           extra = case results
-            when Array; " and returned #{results.size} results"
-            when String; " and returned #{results.size} bytes"
+            when Array; " => #{results.size} results"
+            when String; " => #{results.size} bytes"
             else ""
           end
-          info sprintf("remote call #{pretty} took %d ms#{extra}", (Time.now - startt) * 1000)
+          info sprintf("remote call of %dms#{extra}: #{pretty}", (Time.now - startt) * 1000)
           results
         rescue Exception => e
           e
