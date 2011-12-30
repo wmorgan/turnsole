@@ -682,14 +682,20 @@ private
 
   def load_any_open_messages!
     open = @thread.select { |m, depth| !m.fake? && @messages[m.message_id].nil? && @layouts[m].state != :closed }
+    num_loaded = 0
     open.each do |m, depth|
+      break unless buffer # hack -- if the window's been closed, don't bother to continue downloading stuff
+      next if @messages[m.message_id] # we alrady have it
+      num_loaded += 1
       get_message_from_messageinfo m
       regen_text!
     end
 
     ## since we've potentially changed some message state, let's rebroadcast
     ## the thread state out to everyone
-    @context.client.async_load_threadinfo @threadinfo.thread_id, :on_success => lambda { |threadinfo| @context.ui.broadcast :thread, threadinfo }
+    if num_loaded > 0
+      @context.client.async_load_threadinfo @threadinfo.thread_id, :on_success => lambda { |threadinfo| @context.ui.broadcast :thread, threadinfo }
+    end
   end
 
   ## load message if necessary
