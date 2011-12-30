@@ -83,10 +83,11 @@ EOS
     k.add :unsubscribe_from_list, "Subscribe to/unsubscribe from mailing list", ")"
     k.add :pipe_message_or_attachment, "Pipe message or attachment to a shell command", '|'
 
-    k.add :archive_and_next, "Archive this thread, kill buffer, and view next", 'a'
-    k.add :delete_and_next, "Delete this thread, kill buffer, and view next", 'd'
+    #k.add :archive_and_next, "Archive this thread, kill buffer, and view next", 'a'
+    #k.add :delete_and_next, "Delete this thread, kill buffer, and view next", 'd'
     k.add :toggle_wrap, "Toggle wrapping of text", 'w'
 
+    ## now the two-pass actions that allow us to skip the thread-index-mode
     k.add_multi "(a)rchive/(d)elete/mark as (s)pam/mark as u(N)read:", '.' do |kk|
       kk.add :archive_and_kill, "Archive this thread and kill buffer", 'a'
       kk.add :delete_and_kill, "Delete this thread and kill buffer", 'd'
@@ -585,96 +586,35 @@ EOS
     regen_text!
   end
 
-  def archive_and_kill; archive_and_then :kill end
-  def spam_and_kill; spam_and_then :kill end
-  def delete_and_kill; delete_and_then :kill end
-  def unread_and_kill; unread_and_then :kill end
-  def do_nothing_and_kill; do_nothing_and_then :kill end
-
-  def archive_and_next; archive_and_then :next end
-  def spam_and_next; spam_and_then :next end
-  def delete_and_next; delete_and_then :next end
-  def unread_and_next; unread_and_then :next end
-  def do_nothing_and_next; do_nothing_and_then :next end
-
-  def archive_and_prev; archive_and_then :prev end
-  def spam_and_prev; spam_and_then :prev end
-  def delete_and_prev; delete_and_then :prev end
-  def unread_and_prev; unread_and_then :prev end
-  def do_nothing_and_prev; do_nothing_and_then :prev end
-
-  def archive_and_then op
-    dispatch op do
-      @thread.remove_label :inbox
-      UpdateManager.relay self, :archived, @thread.first
-      Index.save_thread @thread
-      UndoManager.register "archiving 1 thread" do
-        @thread.apply_label :inbox
-        Index.save_thread @thread
-        UpdateManager.relay self, :unarchived, @thread.first
-      end
+  ## two-pass actions
+  %w(archive spam delete unread do_nothing).each do |action|
+    %w(kill next prev).each do |finisher|
+      define_method("#{action}_and_#{finisher}") { perform_two_pass_action action, finisher }
     end
   end
 
-  def spam_and_then op
-    dispatch op do
-      @thread.apply_label :spam
-      UpdateManager.relay self, :spammed, @thread.first
-      Index.save_thread @thread
-      UndoManager.register "marking 1 thread as spam" do
-        @thread.remove_label :spam
-        Index.save_thread @thread
-        UpdateManager.relay self, :unspammed, @thread.first
-      end
-    end
-  end
-
-  def delete_and_then op
-    dispatch op do
-      @thread.apply_label :deleted
-      UpdateManager.relay self, :deleted, @thread.first
-      Index.save_thread @thread
-      UndoManager.register "deleting 1 thread" do
-        @thread.remove_label :deleted
-        Index.save_thread @thread
-        UpdateManager.relay self, :undeleted, @thread.first
-      end
-    end
-  end
-
-  def unread_and_then op
-    dispatch op do
-      @thread.apply_label :unread
-      UpdateManager.relay self, :unread, @thread.first
-      Index.save_thread @thread
-    end
-  end
-
-  def do_nothing_and_then op
-    dispatch op
-  end
-
-  def dispatch op
-    return if @dying
-    @dying = true
-
-    l = lambda do
-      yield if block_given?
-      BufferManager.kill_buffer_safely buffer
+  def perform_two_pass_action action, finisher
+    case action
+    when "archive"; apply_label_change "archiving one thread", (@threadinfo.labels - ["inbox"])
+    when "spam"; apply_label_change "marking one thread as spam", (@threadinfo.labels + ["spam"])
+    when "delete"; apply_label_change "deleting one thread", (@threadinfo.labels + ["deleted"])
+    when "unread"; apply_label_change "marking one thread as unread", (@threadinfo.labels + ["unread"])
+    when "do_nothing"; # do nothing
     end
 
-    case op
-    when :next
-      @index_mode.launch_next_thread_after @thread, &l
-    when :prev
-      @index_mode.launch_prev_thread_before @thread, &l
-    when :kill
-      l.call
-    else
-      raise ArgumentError, "unknown thread dispatch operation #{op.inspect}"
+    case finisher
+    when "next"; @parent_mode.launch_next_thread_after @threadinfo
+    when "prev"; @parent_mode.launch_prev_thread_before @threadinfo
     end
+
+    @context.screen.kill_buffer_safely buffer
   end
-  private :dispatch
+
+  def apply_label_change name, newlabels
+    oldlabels = @threadinfo.labels
+    modify_thread_labels [@threadinfo], [newlabels]
+    to_undo(name) { modify_thread_labels [@threadinfo], [oldlabels] }
+  end
 
   def pipe_message_or_attachment
     chunk = @chunk_lines[curpos]

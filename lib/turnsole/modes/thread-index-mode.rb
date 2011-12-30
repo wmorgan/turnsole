@@ -161,26 +161,23 @@ EOS
     threads.each { |t| select t }
   end
 
-  ## these two methods are called by thread-view-modes when the user
-  ## wants to view the previous/next thread without going back to
-  ## index-mode. we update the cursor as a convenience.
-  def launch_next_thread_after thread, &b
-    launch_another_thread thread, 1, &b
+  ## these two methods are called by thread-view-mode two-pass
+  ## actions.
+  def launch_next_thread_after thread
+    launch_another_thread thread, 1
   end
 
-  def launch_prev_thread_before thread, &b
-    launch_another_thread thread, -1, &b
+  def launch_prev_thread_before thread
+    launch_another_thread thread, -1
   end
 
-  def launch_another_thread thread, direction, &b
+  def launch_another_thread thread, direction
     l = @lines[thread] or return
     target_l = l + direction
     if (target_l >= 0) && (target_l < @threads.length)
       t = @threads[target_l]
       set_cursor_pos target_l
-      select t, b
-    elsif b # no next thread. call the block anyways
-      b.call
+      select t
     end
   end
 
