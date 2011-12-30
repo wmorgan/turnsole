@@ -115,8 +115,12 @@ EOS
       @lines = nil
     end
 
-    def content
-      @content ||= begin
+    def probably_text?; @content_type =~ /^text\// end
+
+    def lines; @lines || [] end
+    def content; @content ||= load_content! end
+    def load_content!
+      begin
         say_id = @context.screen.minibuf.say "downloading attachment #{@filename}..."
         receive_content @context.client.message_part(@message_id, @part_id)
       ensure
@@ -124,10 +128,24 @@ EOS
       end
     end
 
+    def load_content_async! opts={}
+      if @content
+        opts[:on_success].call if opts[:on_success]
+        return
+      end
+
+      say_id = @context.screen.minibuf.say "downloading attachment #{@filename}..."
+      @context.client.async_message_part @message_id, @part_id, :on_success => (lambda do |content|
+        receive_content content
+        @context.screen.minibuf.clear say_id
+        opts[:on_success].call if opts[:on_success]
+      end)
+    end
+
     def receive_content content
       @content = content
-      text_version = case @content_type
-      when /^text\/plain\b/
+      @size = content.size
+      text_version = if probably_text?
         @content
       else
         @context.hooks.run "mime-decode", :content_type => @content_type,
@@ -146,19 +164,21 @@ EOS
     def color; :default end
     def patina_color; :attachment end
     def patina_text
-      if expandable?
-        "Attachment: #{filename} (#{lines.length} lines)"
-      else
+      if @lines
+        "Attachment: #{filename} (#{@lines.length} lines)"
+      elsif @size
         "Attachment: #{filename} (#{content_type}; #{@size.to_human_size})"
+      else
+        "Attachment: #{filename} (#{content_type})"
       end
     end
 
     ## an attachment is exapndable if we've managed to decode it into
     ## something we can display inline. otherwise, it's viewable.
     def inlineable?; false end
-    def expandable?; !viewable? end
-    def initial_state; :open end
-    def viewable?; @lines.nil? end
+    def expandable?; @lines || probably_text? end
+    def initial_state; :closed end
+    def viewable?; !expandable? end
     def view_default! path
       cmd = case ::Config::CONFIG["arch"]
       when /darwin/; "open '#{path}'"
@@ -332,7 +352,7 @@ class ChunkParser
       case hash["type"]
       when /^text\/html/
         Chunk::HTML.new @context, hash["content"]
-      when /^text\//
+      when /^text\/plain/
         text_to_chunks(hash["content"].normalize_whitespace.split("\n"))
       else
         Chunk::Attachment.new @context, message.message_id, i, hash

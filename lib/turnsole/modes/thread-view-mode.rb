@@ -338,9 +338,14 @@ EOS
 
     if layout
       layout.state = (layout.state != :closed ? :closed : :open)
-      #cursor_down if layout.state == :closed # too annoying
-      regen_text!
+
+      ## if we're opening an inlineable attachment, start downlading it in the background
+      if (layout.state == :open) && chunk.is_a?(Chunk::Attachment)
+        chunk.load_content_async! :on_success => lambda { regen_text! }
+      end
+
       load_any_open_messages!
+      regen_text!
     elsif chunk.viewable?
       view chunk
     end

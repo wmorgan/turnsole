@@ -99,6 +99,10 @@ class Client
     perform_async :threadinfo, opts.merge(:args => [thread_id], :on_success => on_success)
   end
 
+  def async_message_part message_id, part_id, opts={}
+    perform_async :message_part, opts.merge(:args => [message_id, part_id])
+  end
+
   ## some methods we relay without change
   %w(message_part raw_message send_message bounce_message count size).each do |m|
     define_method(m) { |*a| perform m.to_sym, :args => a }
