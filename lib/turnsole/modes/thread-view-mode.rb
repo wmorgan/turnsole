@@ -789,6 +789,8 @@ private
   ## generate the actual content lines. we accumulate everything into @text,
   ## we set @chunk_lines and @message_lines, and update @layouts.
   def regen_text!
+    return unless buffer # die unless i'm still actually being displayed
+
     @chunk_lines = []
     @text = []
     @message_lines = []
