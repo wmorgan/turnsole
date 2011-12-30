@@ -483,10 +483,8 @@ class Iconv
     end
 
     begin
-      s = Iconv.iconv(target + "//IGNORE", charset, text + " ").join[0 .. -2]
-      s.check
-      s
-    rescue Errno::EINVAL, Iconv::InvalidEncoding, Iconv::InvalidCharacter, Iconv::IllegalSequence, String::CheckError
+      Iconv.iconv(target + "//IGNORE", charset, text + " ").join[0 .. -2]
+    rescue Errno::EINVAL, Iconv::InvalidEncoding, Iconv::InvalidCharacter, Iconv::IllegalSequence
       debug "couldn't transcode text from #{orig_charset} (#{charset}) to #{target} (#{text[0 ... 20].inspect}...): got #{$!.class} (#{$!.message})"
       text.force_to_ascii
     end
