@@ -108,7 +108,6 @@ EOS
       @content_type = content_type =~ /^(.+?)(;|$)/ ? $1 : content_type
 
       @filename = filename
-      @size = size
 
       @quotable = false # changed to true if we can parse it through the
                         # mime-decode hook, or if it's plain text

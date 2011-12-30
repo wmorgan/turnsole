@@ -890,7 +890,6 @@ private
   def chunk_to_lines chunk, layout, start, depth
     prefix = " " * INDENT_SPACES * depth
 
-    raise "Bad chunk: #{chunk.inspect}" unless chunk.respond_to?(:inlineable?) ## debugging
     if chunk.inlineable?
       lines = chunk.lines
       if layout.wrapped
