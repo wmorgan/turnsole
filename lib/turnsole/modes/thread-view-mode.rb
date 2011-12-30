@@ -139,11 +139,6 @@ EOS
     @layouts = {}
     @chunk_layouts = {}
 
-    ## should we mark the thread as read when we close the buffer?
-    ## true by default; will be set to false if you close with "U"
-    ## or something like that
-    @mark_read = true
-
     ## the display
     @text = []
     @chunk_lines = []
