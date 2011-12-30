@@ -130,6 +130,7 @@ class MessageSummary
   def initialize hash
     if hash["type"] == "fake"
       @fake = true
+      @state = Set.new
     else
       @fake = false
       @subject = hash["subject"]
