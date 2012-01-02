@@ -48,6 +48,7 @@ Options are:
 EOS
   opt :heliotrope_url, "Heliotrope server root URL (default: use value from config)", :type => String, :short => "u"
   opt :list_hooks, "List all hooks and descriptions, and quit."
+  opt :check_first, "Check first to see if the server is up before doing anything else."
   #opt :search, "Search for this query upon startup", :type => String
   #opt :compose, "Compose message to this recipient upon startup", :type => String
   #opt :subject, "When composing, use this subject", :type => String, :short => "j"
@@ -75,24 +76,27 @@ end
 log.info "running under #{RUBY_DESCRIPTION}"
 
 turnsole.setup! opts.heliotrope_url
-server_error = begin
-  info = turnsole.client.server_info
-  if info["status"] != "up"
-    "server is not up. It reports that it is #{info["status"].inspect}."
-  elsif info["api_version"] != HELIOTROPE_SUPPORTED_API_VERSION
-    "server reports API version #{info["api_version"].inspect}. I expect #{HELIOTROPE_SUPPORTED_API_VERSION}. You probably need to upgrade turnsole."
-  else
-    log.debug "server is up"
-    nil
-  end
-rescue HeliotropeClient::Error => e
-  "can't connect to server at #{turnsole.client.url}: #{e.message}."
-end
 
-if server_error
-  $stderr.puts "Error: #{server_error}"
-  $stderr.puts "Can't start turnsole."
-  abort
+if opts.check_first
+  server_error = begin
+    info = turnsole.client.server_info
+    if info["status"] != "up"
+      "server is not up. It reports that it is #{info["status"].inspect}."
+    elsif info["api_version"] != HELIOTROPE_SUPPORTED_API_VERSION
+      "server reports API version #{info["api_version"].inspect}. I expect #{HELIOTROPE_SUPPORTED_API_VERSION}. You probably need to upgrade turnsole."
+    else
+      log.debug "server is up"
+      nil
+    end
+  rescue HeliotropeClient::Error => e
+    "can't connect to server at #{turnsole.client.url}: #{e.message}."
+  end
+
+  if server_error
+    $stderr.puts "Error: #{server_error}"
+    $stderr.puts "Can't start turnsole."
+    abort
+  end
 end
 
 begin
