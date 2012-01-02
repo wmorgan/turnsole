@@ -205,11 +205,12 @@ class Message
 
     attachment_files = {}
     cid_files = {}
+    ts = Time.now.to_i
 
     ## write out attachment files and record filenames
     chunks.each do |c|
       next unless c.is_a? Chunk::Attachment
-      f = Tempfile.new "#{file_prefix}-attachment-#{c.part_id}"
+      f = File.new "/tmp/#{file_prefix}-#{$$}-#{ts}-#{c.part_id}", "w"
       f.write c.content
       f.close
       attachment_files[c] = f
@@ -254,7 +255,7 @@ EOS
 </html>
 EOS
 
-    f = Tempfile.new "#{file_prefix}"
+    f = File.new "/tmp/#{file_prefix}-#{$$}-#{ts}.html", "w"
     f.write s
     f.close
     [f, attachment_files.values]

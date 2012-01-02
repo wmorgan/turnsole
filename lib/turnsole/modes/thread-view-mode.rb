@@ -416,13 +416,24 @@ EOS
     message = @context.client.load_message m.message_id, "text/html"
     message.parse! @context
 
-    file, attachment_files = message.dump_to_html! @context, "turnsole.view_in_browser"
-    if @context.hooks.enabled? "view_as_html"
-      @context.hooks.run "view_as_html", :filename => file.path
+    file, attachment_files = message.dump_to_html! @context, "turnsole.view-in-browser"
+    if @context.hooks.enabled? "view-in-browser"
+      @context.hooks.run "view-in-browser", :filename => file.path
     else
-      @context.ui.shell_out "xdg-open file://#{file.path} > /dev/null 2> /dev/null"
+      cmd = case RUBY_PLATFORM
+      when /darwin/
+        "open #{file.path}"
+      else
+        "xdg-open file://#{file.path}"
+      end
+
+      success = @context.ui.shell_out "#{cmd} > /dev/null 2> /dev/null"
+      unless success
+        @context.screen.minibuf.flash "Couldn't view in browser. Try writing a view-in-browser hook."
+      end
     end
-    sleep 1 # lame hack... try and give enough time before file are unlinked due to garbage collection
+    sleep 3 # lame hack... try and give enough time before unlinking files
+    ([file] + attachment_files).each { |f| File.unlink f }
   end
 
   def publish
