@@ -86,8 +86,12 @@ EOS
     @context.ui.remove_event_listener self
   end
 
+  NUM_AT_A_TIME = 20
   def load!
-    schedule_more(buffer.content_height * 2)
+    while buffer && @threads.size < buffer.content_height
+      result = schedule_more NUM_AT_A_TIME # oh yeah
+      break if result.size < NUM_AT_A_TIME
+    end
   end
 
   def num_lines; @text.length end
@@ -102,14 +106,15 @@ EOS
     @last_schedule_more_size = threads.size
     @already_scheduling_more = false
     receive_threads threads
+    threads
   end
 
   def reload
     @threads = []
     @text = ["loading..."]
     @last_schedule_more_size = -1
-    schedule_more buffer.content_height
     @buffer.mark_dirty!
+    load!
   end
 
   def receive_threads threads
