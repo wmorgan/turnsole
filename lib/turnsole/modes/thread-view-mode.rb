@@ -691,8 +691,9 @@ private
 
     @thread = thread
     @initially_unread_messages = Set.new @thread.select { |m, depth| m.unread? }.map { |m, d| m }
-    init_message_layout!
+    latest = init_message_layout!
     regen_text!
+    #jump_to_message latest # nah, don't like this
     load_any_open_messages!
   end
 
@@ -736,16 +737,24 @@ private
     altcolor = false
 
     @thread.each do |message, depth|
-      earliest = message unless earliest || message.fake?
-      latest = message
       @layouts[message] = MessageLayout.new message
       @layouts[message].color = altcolor ? :alternate_patina : :message_patina
       @layouts[message].star_color = altcolor ? :alternate_starred_patina : :starred_patina
       altcolor = !altcolor
+
+      unless message.fake?
+        earliest ||= message
+        if latest_date.nil? || (message.date > latest_date)
+          latest_date = message.date
+          latest = message
+        end
+      end
     end
 
     @layouts[latest].state = :open if @layouts[latest].state == :closed
     @layouts[earliest].state = :detailed if earliest.unread? || @thread.size == 1
+
+    latest
   end
 
   ## generate the actual content lines. we accumulate everything into @text,
