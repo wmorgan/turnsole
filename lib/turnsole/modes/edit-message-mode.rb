@@ -97,7 +97,7 @@ EOS
     end
     hostname = Socket.gethostname if hostname.nil? or hostname.empty?
 
-    @message_id = "<#{Time.now.to_i}-sup-#{rand 10000}@#{hostname}>"
+    @message_id = "<#{Time.now.to_i}-turnsole-#{rand 100000}@#{hostname}>"
     @edited = false
     @selectors = []
     @selector_label_width = 0
