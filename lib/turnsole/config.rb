@@ -40,7 +40,6 @@ private
       },
 
       :editor => ENV["EDITOR"] || "/usr/bin/vim -f -c 'set filetype=mail'",
-      :edit_signature => false,
       :ask_for_from => false,
       :ask_for_to => true,
       :ask_for_cc => true,

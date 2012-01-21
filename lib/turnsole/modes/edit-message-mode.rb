@@ -80,7 +80,7 @@ EOS
     @header_lines = []
 
     @body = opts.delete(:body) || []
-    @body += sig_lines if @context.config.edit_signature && !opts.delete(:have_signature)
+    @body += sig_lines
 
     if opts[:attachments]
       @attachments = opts[:attachments].values
@@ -257,7 +257,6 @@ protected
   def regen_text!
     header, @header_lines = format_headers(@header - NON_EDITABLE_HEADERS)
     @text = header + [""] + @body
-    @text += sig_lines unless @context.config.edit_signature
 
     @attachment_lines_offset = 0
 
@@ -365,8 +364,7 @@ protected
 
   def build_message
     m = RMail::Message.new
-    m.body = @body.join("\n")
-    m.body += sig_lines.join("\n") unless @context.config.edit_signature
+    m.body = @body.join "\n"
     ## body must end in a newline or GPG signatures will be WRONG!
     m.body += "\n" unless m.body =~ /\n\Z/
     m.header["Content-Type"] = "text/plain; charset=#{@context.encoding}"
@@ -436,7 +434,7 @@ EOS
 
     f.puts
     f.puts sanitize_body(@body.join("\n"))
-    f.puts sig_lines if full unless @context.config.edit_signature
+    f.puts sig_lines if full
   end
 
 protected
