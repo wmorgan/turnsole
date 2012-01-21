@@ -6,8 +6,7 @@ class GlobalBehavior
   include LogsStuff
 
   GLOBAL_KEYMAP = Keymap.new do |k|
-    k.add :quit_ask, "Quit Turnsole, but ask first", 'q'
-    k.add :quit_now, "Quit Turnsole immediately", 'Q'
+    k.add :quit_now, "Quit Turnsole", 'q'
     k.add :help, "Show help", '?'
     k.add :roll_buffers, "Switch to next buffer", 'b'
     k.add :roll_buffers_backwards, "Switch to previous buffer", 'B'
@@ -59,10 +58,6 @@ EOS
     case action
     when :quit_now
       @context.ui.quit! if @context.screen.kill_all_buffers_safely
-    when :quit_ask
-      if @context.input.ask_yes_or_no "Really quit?"
-        @context.ui.quit! if @context.screen.kill_all_buffers_safely
-      end
     when :help
       mode = @context.screen.focus_buf.mode
       @context.screen.spawn_unless_exists("<help for #{mode.name}>") { HelpMode.new @context, mode, GLOBAL_KEYMAP }
