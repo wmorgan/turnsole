@@ -433,7 +433,7 @@ EOS
       end
     end
     sleep 3 # lame hack... try and give enough time before unlinking files
-    ([file] + attachment_files).each { |f| File.unlink f }
+    ([file] + attachment_files).each { |f| File.unlink f.path }
   end
 
   def publish
