@@ -1,5 +1,4 @@
 module Turnsole
-
 class HookManager
   class HookEnv
     def initialize name, context
@@ -82,15 +81,15 @@ class HookManager
 
   def run name, locals={}
     hook = hook_for(name) or return
-    env = @envs[hook] ||= HookEnv.new(name, context)
+    env = @envs[hook] ||= HookEnv.new(name, @context)
 
     result = nil
     fn = fn_for name
     begin
       result = env.__run hook, fn, locals
     rescue Exception => e
-      log "error running #{fn}: #{e.message}"
-      log e.backtrace.join("\n")
+      log.debug "error running #{fn}: #{e.message}"
+      log.debug e.backtrace.join("\n")
       @hooks[name] = nil # disable it
       @context.screen.minibuf.flash "Error running hook: #{e.message}" if @context.screen.cursing?
     end
@@ -119,7 +118,7 @@ EOS
 
   def enabled? name; !hook_for(name).nil? end
 
-  def clear; @hooks.clear; BufferManager.flash "Hooks cleared" end
+  def clear; @hooks.clear; @context.screen.minibuf.flash "Hooks cleared" end
   def clear_one k; @hooks.delete k; end
 
 private

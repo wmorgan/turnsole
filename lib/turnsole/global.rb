@@ -108,23 +108,24 @@ EOS
         b.mode.load_threads :num => b.content_height if new
       end
     when :show_inbox; @context.screen.raise_to_front @context.screen.find_by_mode(InboxMode)
-    when :clear_hooks; HookManager.clear!
+    when :clear_hooks; @context.hooks.clear
     when :show_console
       b, new = bm.spawn_unless_exists("Console", :system => true) { ConsoleMode.new }
       b.mode.run
     when :reload_colors
-      Colormap.reset!
-      Colormap.populate!
-      UI.redraw!
-      UI.flash "reloaded colors"
+      @context.colors.reset!
+      @context.colors.populate!
+      @context.colors.setup!
+      @context.screen.mark_dirty!
+      @context.screen.minibuf.flash "reloaded colors"
     when :run_keybindings_hook
-      HookManager.clear_one 'keybindings'
-      Keymap.run_hook global_keymap
-      UI.flash "keybindings hook run"
+      @context.hooks.clear_one 'keybindings'
+      run_hook!
+      @context.screen.minibuf.flash "keybindings hook run"
     when :nothing, Input::InputSequenceAborted
     when :redraw; @context.screen.mark_dirty!
     else
-      UI.flash "Unknown keypress '#{c.to_character}' for #{bm.focus_buf.mode.name}."
+      @context.screen.minibuf.flash "Unknown keypress '#{c.to_character}' for #{bm.focus_buf.mode.name}."
     end
   end
 end
