@@ -1,4 +1,5 @@
 module Turnsole
+
 class HookManager
   class HookEnv
     def initialize name, context
