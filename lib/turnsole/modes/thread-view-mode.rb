@@ -702,7 +702,7 @@ private
     num_loaded = 0
     open.each do |m, depth|
       break unless buffer # hack -- if the window's been closed, don't bother to continue downloading stuff
-      next if @messages[m.message_id] # we alrady have it
+      next if @messages[m.message_id] # we already have it
       num_loaded += 1
       get_message_from_messageinfo m
       regen_text!
@@ -723,9 +723,11 @@ private
       message.parse! @context
       message.chunks.each { |c| @chunk_layouts[c] = ChunkLayout.new c }
 
-      message.state -= ["unread"]
-      @context.client.async_set_state! message.message_id, message.state
-      @context.ui.broadcast :message_state, message.message_id
+      if message.unread?
+        message.state -= ["unread"]
+        @context.client.async_set_state! message.message_id, message.state
+        @context.ui.broadcast :message_state, message.message_id
+      end
 
       message
     end
