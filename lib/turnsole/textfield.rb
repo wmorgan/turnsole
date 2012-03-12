@@ -85,9 +85,9 @@ class TextField
       if @completions.empty?
         c = @completion_block.call @answer
         if c.size > 0
-          @answer = c.map { |full, short| full }.shared_prefix(true)
+          @answer = c.map { |full, short, match| match || full }.shared_prefix(true)
           if c.size == 1 # exact match!
-            @answer += " "
+            @answer = c.first.first
             @completion_state = :clear
           end
           @curpos = @answer.length # to the end

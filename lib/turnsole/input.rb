@@ -69,10 +69,9 @@ class Input
       if textfield.new_completions?
         @context.screen.kill_buffer completion_buf if completion_buf
 
-        shorts = textfield.completions.map { |full, short| short }
-        prefix_len = shorts.shared_prefix.length
-
-        mode = CompletionMode.new @context, shorts, :header => "Possible completions for \"#{textfield.answer}\": ", :prefix_len => prefix_len
+        match = textfield.completions.map { |full, short, match| match || short }.shared_prefix(true)
+        entries = textfield.completions.map { |full, short, match| short }
+        mode = CompletionMode.new @context, entries, :match => match, :header => "Completions for \"#{textfield.answer}\": "
         completion_buf = @context.screen.spawn "<completions>", mode, :height => 10
       elsif textfield.roll_completions?
         completion_buf.mode.roll!

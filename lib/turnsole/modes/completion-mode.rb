@@ -5,8 +5,8 @@ class CompletionMode < ScrollMode
 
   def initialize context, list, opts={}
     @list = list
-    @header = opts[:header]
-    @prefix_len = opts[:prefix_len]
+    @header = opts[:header] or raise ArgumentError, "need :header"
+    @match = opts[:match] or raise ArgumentError, "need :match"
     @lines = nil
     super context, :slip_rows => 1, :twiddles => false
   end
@@ -32,14 +32,14 @@ private
     num_per = [1, buffer.content_width / (max_width + INTERSTITIAL.display_width)].max
 
     completions = @list.map do |s|
-      if @prefix_len && (@prefix_len < s.length)
-        prefix = s[0 ... @prefix_len]
-        suffix = s[(@prefix_len + 1) .. -1]
-        char = s[@prefix_len].chr
+      idx = s.downcase.index @match.downcase
+      if idx
+        prefix = s[0 ... idx]
+        suffix = s[(idx + @match.length) .. -1]
 
-        [[:default, sprintf("%#{max_length - suffix.length - 1}s", prefix)],
-         [:completion_character, char],
-         [:default, suffix + INTERSTITIAL]]
+         [[:default, sprintf("%#{max_length - suffix.length - @match.length}s", prefix)],
+          [:completion_character, s[idx ... (idx + @match.length)]],
+          [:default, suffix + INTERSTITIAL]]
       else
          [[:default, sprintf("%#{max_length}s#{INTERSTITIAL}", s)]]
       end
