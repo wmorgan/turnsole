@@ -1,6 +1,7 @@
 require 'benchmark'
 require 'iconv'
 require 'set'
+require 'mime/types'
 
 class Set
   def to_json; to_a.to_json end # otherwise you get nonsense

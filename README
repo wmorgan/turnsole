@@ -6,7 +6,7 @@ have to run it the hard way:
 0.  Install Heliotrope. See the README at http://github.com/wmorgan/heliotrope.
 1.  Start Heliotrope.
 2.  Run `git clone https://github.com/wmorgan/turnsole.git`.
-3.  Install the following gems: trollop console locale rmail rest-client.
+3.  Install the following gems: trollop console locale rmail rest-client mime-types.
 4.1 If you are on OS X 10.6, also install the snowleopard-ncurses gem.
 4.2 If you are on Linux, also install the ncursesw gem.
 
