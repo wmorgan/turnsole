@@ -74,6 +74,11 @@ class Client
     ThreadSummary.new result
   end
 
+  def contacts_with_prefix prefix
+    results = perform :contacts_with_prefix, :args => [prefix]
+    results.map { |r| Person.from_string "#{r["name"]} <#{r["email"]}>" }
+  end
+
   def async_set_labels! thread_id, labels, opts={}
     on_success = lambda { |x| opts[:on_success].call Set.new(x) } if opts[:on_success]
     perform_async :set_labels!, opts.merge(:args => [thread_id, labels], :on_success => on_success)
