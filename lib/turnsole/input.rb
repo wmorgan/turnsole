@@ -189,15 +189,24 @@ class Input
   end
 
   def ask_for_contacts domain, question, default_contacts=[]
-    default = default_contacts.is_a?(String) ? default_contacts : default_contacts.map { |s| s.to_s }.join(", ")
+    default = [default_contacts].flatten.join(", ")
     default += " " unless default.empty?
 
-    recent = []#Index.load_contacts(AccountManager.user_emails, :num => 10).map { |c| [c.email_ready_address, c.email] }
-    contacts = []#ContactManager.contacts.map { |c| [ContactManager.alias_for(c), c.email_ready_address, c.email] }
+    answer = ask domain, question, default do |partial|
+      completed, target = partial.split_on_commas_with_remainder
+      target ||= completed.pop || ""
+      completed = completed.join(", ") + (completed.empty? ? "" : ", ")
+      @context.client.contacts_with_prefix(target).map do |c|
+        matched_component = if c.email.has_prefix?(target)
+          c.email
+        elsif c.email_ready_address.has_prefix?(target)
+          c.email_ready_address
+        end
+        next unless matched_component
 
-    completions = (recent + contacts).flatten.uniq
-    completions += @context.hooks.run("extra-contact-addresses") || []
-    answer = ask_many_emails_with_completions domain, question, completions, default
+        [completed + c.email_ready_address, c.email_ready_address, matched_component]
+      end.compact
+    end
 
     if answer
       answer.split_on_commas.map { |x| Person.from_string(x) }#{ |x| ContactManager.contact_for(x) || Person.from_string(x) }

@@ -52,9 +52,9 @@ class Person
 
   ## copied and pasted from heliotrope. oh yeahhhhhh
   ##
-  ## takes a string, returns a [name, email, emailnodomain] combo
-  ## e.g. for William Morgan <wmorgan@example.com>, returns
-  ##  ["William Morgan", wmorgan@example.com, wmorgan]
+  ## takes a string, returns a Person
+  ## e.g. for "William Morgan <wmorgan@example.com>", returns
+  ##  Person[name = William Morgan, email = wmorgan@example.com, handle = wmorgan]
   def self.from_string string # ripped from sup
     return if string.nil? || string.empty?
 
@@ -70,7 +70,7 @@ class Person
     when /((\S+?)@\S+)/
       [nil, $1, $2]
     else
-      [nil, string, nil] # i guess...
+      [nil, string, string]
     end
 
     Person.new name, email, handle
