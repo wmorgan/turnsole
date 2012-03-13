@@ -763,6 +763,7 @@ private
   ## we set @chunk_lines and @message_lines, and update @layouts.
   def regen_text!
     return unless buffer # die unless i'm still actually being displayed
+    return unless @thread # die unless i actually have loaded the thread
 
     @chunk_lines = []
     @text = []
