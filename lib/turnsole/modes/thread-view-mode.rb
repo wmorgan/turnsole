@@ -370,7 +370,7 @@ EOS
     default_dir = @context.config.default_attachment_save_dir || ENV["HOME"]
     case chunk
     when Chunk::Attachment
-      default_fn = File.expand_path File.join(default_dir, chunk.filename)
+      default_fn = File.expand_path File.join(default_dir, chunk.filename || 'unnamed')
       fn = @context.input.ask_for_filename :filename, "Save attachment to file: ", default_fn
       return unless fn
       @context.ui.save_to_file(fn) { |f| f.write chunk.content }
