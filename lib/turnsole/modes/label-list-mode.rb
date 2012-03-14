@@ -32,7 +32,8 @@ class LabelListMode < LineCursorMode
 
   def load!
     @context.labels.load!
-    @context.labels.all_labels.each do |l|
+    @context.labels.all_labels.sort.each do |l|
+      @unread_counts[l] = nil
       @counts[l] = @context.client.count "~#{l}"
       regen_text!
       buffer.mark_dirty! if buffer
