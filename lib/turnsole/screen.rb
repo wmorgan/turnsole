@@ -1,4 +1,5 @@
 require 'console/string' # String#display_width, String#display_slice
+require 'turnsole/string-patches'
 
 module Turnsole
 class Screen
