@@ -172,7 +172,7 @@ private
               @context.ui.enqueue :server_response, results, opts[:on_failure]
             else
               sadface = "uncaught exception from async call: #{results.inspect}"
-              @context.screen.minibuf.flash sadflash
+              @context.screen.minibuf.flash sadface
 
               @context.log.warn "uncaught exception from async call: #{results.inspect}\n#{results.backtrace.join("\n")}"
             end

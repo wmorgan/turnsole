@@ -38,8 +38,8 @@ end
 opts = Trollop::options do
   version "sup v#{Turnsole::VERSION}"
   banner <<EOS
-Turnsole is an ncurses-based email client. It is a frontend to the Heliotrope email
-service.
+Turnsole is an ncurses-based email client. It is a frontend to the Heliotrope
+email service.
 
 Usage:
   turnsole [options]
