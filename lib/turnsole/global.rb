@@ -77,7 +77,7 @@ EOS
           SearchResultsMode.spawn_from_query @context, query
         end
       end
-    when :search_unread; SearchResultsMode.spawn_from_query "~unread"
+    when :search_unread; SearchResultsMode.spawn_from_query @context, "~unread"
     when :list_labels
       labels = @context.labels.all_labels
       user_label = @context.input.ask_with_completions :label, "Show threads with label (enter for listing): ", labels
