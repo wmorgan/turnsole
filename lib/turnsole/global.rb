@@ -83,8 +83,10 @@ EOS
       user_label = @context.input.ask_with_completions :label, "Show threads with label (enter for listing): ", labels
       if user_label # not canceled
         if user_label.empty?
-          mode = LabelListMode.new @context
-          @context.screen.spawn_unless_exists("Label list") { mode }
+          @context.screen.spawn_unless_exists("Label list") do
+            mode = LabelListMode.new @context
+            mode
+          end
           mode.load!
         else
           SearchResultsMode.spawn_from_query @context, "~#{user_label}"
