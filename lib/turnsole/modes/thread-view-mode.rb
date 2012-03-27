@@ -491,6 +491,7 @@ EOS
     end
 
     nextm = @layouts[m].next
+    return unless nextm
     if @layouts[nextm].state == :closed
       @layouts[nextm].state = :open
       @layouts[nextm].toggled_state = true
