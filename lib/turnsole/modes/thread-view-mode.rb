@@ -914,25 +914,27 @@ private
     p.nil? ? "?" : p.longname# + (ContactManager.is_aliased_contact?(p) ? " (#{ContactManager.alias_for p})" : "")
   end
 
+  def wrap_lines lines
+    config_width = 78 # TODO figure out what to do with this
+    #width = config_width.clamp(0, buffer.content_width)
+    width = buffer.content_width.clamp(0, config_width)
+    lines.map { |l| l.chomp.wrap width }.flatten
+  end
+
   ## todo: check arguments on this overly complex function
   def chunk_to_lines chunk, layout, start, depth
     prefix = " " * INDENT_SPACES * depth
 
     if chunk.inlineable?
-      lines = chunk.lines
-      if layout.wrapped
-        config_width = 78 # TODO figure out what to do with this
-        #width = config_width.clamp(0, buffer.content_width)
-        width = buffer.content_width.clamp(0, config_width)
-        lines = lines.map { |l| l.chomp.wrap width }.flatten
-      end
+      lines = layout.wrapped ? wrap_lines(chunk.lines) : chunk.lines
       lines.map { |line| [[chunk.color, "#{prefix}#{line}"]] }
     elsif chunk.expandable?
       case layout.state
       when :closed
         [[[chunk.patina_color, "#{prefix}+ #{chunk.patina_text}"]]]
       when :open
-        [[[chunk.patina_color, "#{prefix}- #{chunk.patina_text}"]]] + chunk.lines.map { |line| [[chunk.color, "#{prefix}#{line}"]] }
+        lines = layout.wrapped ? wrap_lines(chunk.lines) : chunk.lines
+        [[[chunk.patina_color, "#{prefix}- #{chunk.patina_text}"]]] + lines.map { |line| [[chunk.color, "#{prefix}#{line}"]] }
       end
     else
       [[[chunk.patina_color, "#{prefix}x #{chunk.patina_text}"]]]
