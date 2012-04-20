@@ -467,15 +467,19 @@ protected
     cur_width = 0
     from = []
 
+    recipients = ((t.direct_recipients + t.indirect_recipients) - t.participants).collect { |r| r if !@context.accounts.is_account?(r) }
+    people = t.participants.size == 1 && @context.accounts.is_account?(t.participants.first) && recipients.size > 0 ? recipients : t.participants
+
     remaining_width = from_width
-    t.participants.each_with_index do |p, i|
+    people.each_with_index do |p, i|
       break if remaining_width <= 0
 
-      last = i == t.participants.length - 1
+      last = i == people.length - 1
       name = if @context.accounts.is_account?(p); "me"
-        elsif t.participants.size == 1; p.mediumname
+        elsif people.size == 1; p.mediumname
         else p.shortname
       end
+      name = "(#{name})" if recipients.include?(p)
 
       new_width = name.display_width
 
