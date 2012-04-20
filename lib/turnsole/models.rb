@@ -20,11 +20,16 @@ class Person
   attr_reader :name, :email, :handle
 
   def shortname
-    case @name
+    return @handle if !@name
+    # Remove (academic) titles for the short version of the name.
+    stripped_name = @name
+    ['Dr', 'Prof', 'Mr', 'Mrs', 'Ms'].each do |title|
+      stripped_name = stripped_name.gsub(/#{title}.?\s/, '')
+    end
+    case stripped_name
     when /\S+, (\S+)/; $1
     when /(\S+) \S+/; $1
-    when nil; @handle
-    else @name
+    else stripped_name
     end
   end
 
