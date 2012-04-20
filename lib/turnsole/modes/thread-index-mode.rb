@@ -100,7 +100,7 @@ EOS
   def log; @context.log end
 
   def schedule_more num_threads
-    return if @already_scheduling_more || (@last_schedule_more_size == 0)
+    return 0 if @already_scheduling_more || (@last_schedule_more_size == 0)
     @already_scheduling_more = true
     threads = @context.client.search query, num_threads, @threads.size
     @last_schedule_more_size = threads.size
