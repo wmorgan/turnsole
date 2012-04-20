@@ -269,10 +269,10 @@ protected
 
   def parse_file fn
     begin
-      m = RMail::Parser.read(IO.read(fn))
+      m = RMail::Parser.read IO.read(fn).safely_mark_binary
       headers = m.header.to_a.to_h - NON_EDITABLE_HEADERS # bleargh!!
-      headers.map { |name, text| headers[name] = parse_header name, text }
-      [headers, m.body.to_s.split("\n")]
+      headers.map { |name, text| headers[name] = parse_header name, text.safely_mark_utf8 }
+      [headers, m.body.to_s.safely_mark_utf8.split("\n")]
     end
   end
 

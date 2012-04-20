@@ -219,10 +219,7 @@ class String
 
   def ord; self[0] end unless method_defined? :ord
 
-  def in_ruby19_hell?
-    @in_ruby19_hell = "".respond_to?(:encoding) if @in_ruby19_hell.nil?
-    @in_ruby19_hell
-  end
+  def in_ruby19_hell?; respond_to?(:encoding) end
 
   def safely_mark_encoding! encoding
     if in_ruby19_hell?
@@ -246,6 +243,15 @@ class String
     if in_ruby19_hell?
       s = frozen? ? dup : self
       s.force_encoding Encoding::BINARY
+    else
+      self
+    end
+  end
+
+  def safely_mark_utf8
+    if in_ruby19_hell?
+      s = frozen? ? dup : self
+      s.force_encoding Encoding::UTF_8
     else
       self
     end
