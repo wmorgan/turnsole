@@ -137,7 +137,7 @@ begin
     #imode = InboxMode.new
     #ibuf = turnsole.ui.spawn "Inbox", imode
 
-    textmode = Turnsole::TextMode.new turnsole, "hello human\nwelcome to sup\ni hope you like it!"
+    textmode = Turnsole::TextMode.new turnsole, "hello human\nwelcome to turnsole\ni hope you like it!"
     tmode = turnsole.screen.spawn "hello", textmode
 
     mode = Turnsole::InboxMode.new turnsole
