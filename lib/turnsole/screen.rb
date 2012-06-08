@@ -332,6 +332,10 @@ EOS
     end
   end
 
+  def find_by_mode mode
+    @buffers.find { |buf| buf.mode.is_a? mode }
+  end
+
 private
 
   def title_for buf
