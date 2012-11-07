@@ -85,9 +85,9 @@ EOS
         if user_label.empty?
           @context.screen.spawn_unless_exists("Label list") do
             mode = LabelListMode.new @context
+            mode.load!
             mode
           end
-          mode.load!
         else
           SearchResultsMode.spawn_from_query @context, "~#{user_label}"
         end
