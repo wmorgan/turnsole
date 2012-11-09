@@ -204,7 +204,7 @@ class Input
         end
         next unless matched_component
 
-        [completed + c.email_ready_address, c.email_ready_address, matched_component]
+        [completed + c.email_ready_address, c.email_ready_address, completed + matched_component]
       end.compact
     end
 

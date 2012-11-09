@@ -14,9 +14,9 @@ class ForwardMode < EditMessageMode
       "Fwd: " + opts[:attachments].keys.join(", ")
     end
 
-    header["To"] = (opts[:to] || []).map { |p| p.email_ready_address }.join(", ")
-    header["Cc"] = (opts[:cc] || []).map { |p| p.email_ready_address }.join(", ")
-    header["Bcc"] = (opts[:bcc] || []).map { |p| p.email_ready_address }.join(", ")
+    header["To"] = (opts[:to] || []).map { |p| p.email_ready_address }
+    header["Cc"] = (opts[:cc] || []).map { |p| p.email_ready_address }
+    header["Bcc"] = (opts[:bcc] || []).map { |p| p.email_ready_address }
 
     body = if opts[:message]
       forward_body_lines(opts[:message])

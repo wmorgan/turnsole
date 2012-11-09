@@ -5,9 +5,9 @@ class ComposeMode < EditMessageMode
     @context = context
     header = {}
     header["From"] = (opts[:from] || context.accounts.default_account).email_ready_address
-    header["To"] = opts[:to].map { |p| p.email_ready_address }.join(", ") if opts[:to]
-    header["Cc"] = opts[:cc].map { |p| p.email_ready_address }.join(", ") if opts[:cc]
-    header["Bcc"] = opts[:bcc].map { |p| p.email_ready_address }.join(", ") if opts[:bcc]
+    header["To"] = opts[:to].map { |p| p.email_ready_address } if opts[:to]
+    header["Cc"] = opts[:cc].map { |p| p.email_ready_address } if opts[:cc]
+    header["Bcc"] = opts[:bcc].map { |p| p.email_ready_address } if opts[:bcc]
     header["Subject"] = opts[:subj] if opts[:subj]
     header["References"] = opts[:refs].map { |r| "<#{r}>" }.join(" ") if opts[:refs]
     header["In-Reply-To"] = opts[:replytos].map { |r| "<#{r}>" }.join(" ") if opts[:replytos]
