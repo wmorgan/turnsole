@@ -142,3 +142,19 @@ EOS
 end
 
 end
+
+class String
+
+  # Clean monkey-patching, as per
+  # http://stackoverflow.com/questions/4470108/when-monkey-patching-a-method-can-you-call-the-overridden-method-from-the-new-i
+  # We need this because the string might have funny characters
+  old_display_width = instance_method(:display_width)
+  define_method(:display_width) do
+    self.encode! Encoding::ASCII, :invalid => :replace unless self.valid_encoding?
+    begin
+      old_display_width.bind(self).()
+    rescue
+      0
+    end
+  end
+end
