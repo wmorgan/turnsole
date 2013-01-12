@@ -1,0 +1,16 @@
+GEM
+  remote: http://rubygems.org/
+  specs:
+    console (0.5)
+    gpgme (2.0.1)
+    ncursesw (1.2.4.3)
+    rmail (1.0.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  console
+  gpgme
+  ncursesw
+  rmail

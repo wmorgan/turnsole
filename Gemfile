@@ -1,0 +1,5 @@
+source "http://rubygems.org"
+gem "ncursesw"
+gem "gpgme"
+gem "rmail"
+gem "console"
