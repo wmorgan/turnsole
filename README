@@ -6,9 +6,15 @@ have to run it the hard way:
 0.  Install Heliotrope. See the README at http://github.com/wmorgan/heliotrope.
 1.  Start Heliotrope.
 2.  Run `git clone https://github.com/wmorgan/turnsole.git`.
-3.  Install the following gems: trollop console locale rmail rest-client mime-types curb lrucache json.
-4.1 If you are on OS X Snowleopard OR Lion, also install the snowleopard-ncurses gem.
-4.2 If you are on Linux, also install the ncursesw gem.
+3.  Install the bundler gem and install the needed gems:
+      $ gem install bundler
+      $ bundle install
+
+    If bundler doesn't work for you, you can read the needed gems in the
+    Gemfile and install them.
+
+    Note that ncursesw is for Linux; OSX Snowleopard and Lion are said
+    to need the snowleopard-ncurses gem instead.
 
 Run turnsole like this:
   ruby -I lib -I <heliotrope repo>/lib bin/turnsole

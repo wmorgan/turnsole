@@ -77,7 +77,7 @@ EOS
           SearchResultsMode.spawn_from_query @context, query
         end
       end
-    when :search_unread; SearchResultsMode.spawn_from_query "~unread"
+    when :search_unread; SearchResultsMode.spawn_from_query @context, "~unread"
     when :list_labels
       labels = @context.labels.all_labels
       user_label = @context.input.ask_with_completions :label, "Show threads with label (enter for listing): ", labels
@@ -85,9 +85,9 @@ EOS
         if user_label.empty?
           @context.screen.spawn_unless_exists("Label list") do
             mode = LabelListMode.new @context
+            mode.load!
             mode
           end
-          mode.load!
         else
           SearchResultsMode.spawn_from_query @context, "~#{user_label}"
         end
@@ -107,7 +107,7 @@ EOS
         b, new = @context.screen.spawn_unless_exists("All drafts") { LabelSearchResultsMode.new [:draft] }
         b.mode.load_threads :num => b.content_height if new
       end
-    when :show_inbox; @context.screen.raise_to_front @context.screen.find_by_mode(InboxMode)
+    when :show_inbox; @context.screen.spawn_unless_exists("Inbox Mode") { InboxMode.instance }
     when :clear_hooks; @context.hooks.clear
     when :show_console
       b, new = bm.spawn_unless_exists("Console", :system => true) { ConsoleMode.new }

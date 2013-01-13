@@ -1,0 +1,28 @@
+GEM
+  remote: http://rubygems.org/
+  specs:
+    PriorityQueue (0.1.2)
+    console (0.5)
+    curb (0.8.3)
+    gpgme (2.0.1)
+    locale (2.0.8)
+    lrucache (0.1.4)
+      PriorityQueue (~> 0.1.2)
+    mime-types (1.19)
+    ncursesw (1.2.4.3)
+    rmail (1.0.0)
+    trollop (2.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  console
+  curb
+  gpgme
+  locale
+  lrucache
+  mime-types
+  ncursesw
+  rmail
+  trollop
